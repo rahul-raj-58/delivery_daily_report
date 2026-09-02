@@ -92,6 +92,18 @@ svg { display:block }
 }
 
 /* CORS help box */
+/* file:// banner — shown immediately if not served via HTTP */
+.file-warn {
+  display:none; margin-bottom:1.25rem; padding:1rem 1.1rem; border-radius:var(--r2);
+  background:#fef9c3; border:1.5px solid #fbbf24;
+}
+.file-warn h4 { font-size:.85rem; font-weight:700; margin-bottom:.35rem; color:#78350f }
+.file-warn p  { font-size:.78rem; color:#78350f; line-height:1.6 }
+.file-warn code {
+  display:block; margin:.45rem 0 .2rem; padding:.45rem .75rem; background:#fef3c7;
+  border-radius:4px; font-size:.8rem; font-family:ui-monospace,monospace; color:#92400e;
+  word-break:break-all;
+}
 .cors-help {
   display:none; margin-top:.875rem; padding:.875rem; border-radius:var(--r2);
   background:#fffbeb; border:1px solid #fcd34d;
@@ -100,7 +112,8 @@ svg { display:block }
 .cors-help p  { font-size:.78rem; color:#78350f; line-height:1.6 }
 .cors-help code {
   display:block; margin-top:.5rem; padding:.45rem .7rem; background:#fef3c7;
-  border-radius:4px; font-size:.8rem; font-family:monospace; color:#92400e;
+  border-radius:4px; font-size:.8rem; font-family:ui-monospace,monospace; color:#92400e;
+  word-break:break-all;
 }
 
 /* ══════════════════════════════════════════════════
@@ -248,6 +261,14 @@ tr:hover td { background:var(--surface2) }
 <!-- ══════════ LOGIN ══════════ -->
 <div id="screen-login">
   <div class="login-wrap">
+    <!-- shown if opened as file:// -->
+    <div class="file-warn" id="file-warn">
+      <h4>⚠ Open via a local server, not file://</h4>
+      <p>Your browser blocks cross-origin requests from <strong>file://</strong> pages. Run this one-time command in Terminal from the folder where this file is saved:</p>
+      <code>python3 -m http.server 8080</code>
+      <p>Then open <strong>http://localhost:8080/catalog-dashboard.html</strong> in your browser.</p>
+    </div>
+
     <div class="login-card">
       <div class="login-brand">
         <div class="login-icon">📊</div>
@@ -455,8 +476,8 @@ async function doLogin() {
 }
 
 function isCorsError(e) {
-  // CORS / network errors throw TypeError with "Failed to fetch" or "NetworkError"
-  return e instanceof TypeError && /fetch|network/i.test(e.message);
+  // Chrome: "Failed to fetch"  |  Safari: "Load failed"  |  Firefox: "NetworkError"
+  return e instanceof TypeError && /fetch|network|load failed/i.test(e.message);
 }
 
 function showLoginErr(msg) {
@@ -836,6 +857,14 @@ function hideLoading() {
 function showDataErr(msg) {
   document.getElementById('err-msg').textContent = msg;
   document.getElementById('state-error').style.display = 'block';
+}
+
+// ── Detect file:// and warn immediately ───────────────────────
+if (location.protocol === 'file:') {
+  document.getElementById('file-warn').style.display = 'block';
+  // also disable the button so user can't accidentally try anyway
+  document.getElementById('btn-login').disabled = true;
+  document.getElementById('btn-login').textContent = 'Serve via HTTP first (see above)';
 }
 
 // ── Keyboard: Enter to login ──────────────────────────────────
