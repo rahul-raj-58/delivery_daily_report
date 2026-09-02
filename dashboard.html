@@ -1,823 +1,681 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Spyne · Catalog Dashboard</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Management Catalog Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
-/* ── Design tokens ─────────────────────────────────────── */
+/* ── Tokens ── */
 :root {
-  --bg:       #f4f5f9;
-  --surface:  #ffffff;
-  --surface2: #f0f1f6;
-  --border:   #e3e6ef;
-  --text:     #111827;
-  --text2:    #6b7280;
-  --text3:    #9ca3af;
-  --accent:   #6366f1;
-  --accent-h: #4f46e5;
-  --accent-s: #eef2ff;
-  --green:    #10b981;
-  --green-s:  #d1fae5;
-  --amber:    #f59e0b;
-  --amber-s:  #fef3c7;
-  --red:      #ef4444;
-  --red-s:    #fee2e2;
-  --blue:     #0ea5e9;
-  --blue-s:   #e0f2fe;
-  --r:        12px;
-  --r2:       8px;
-  --sh:       0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
-  --sh2:      0 8px 24px rgba(0,0,0,.09);
-  /* categorical palette – fixed order, validated for CVD separation */
-  --c1:#6366f1; /* indigo  – Overall   */
-  --c2:#0ea5e9; /* sky     – Ent       */
-  --c3:#a855f7; /* purple  – Mid       */
-  --c4:#f59e0b; /* amber   – Resellers */
-  --c5:#10b981; /* emerald – SMB       */
+  --bg: #f0f4f8;
+  --surface: #ffffff;
+  --surface2: #f7f9fc;
+  --border: #e2e8f0;
+  --text-p: #1a202c;
+  --text-s: #4a5568;
+  --text-m: #718096;
+  --accent: #4361ee;
+  --accent-h: #3451d1;
+  --c0: #4361ee;   /* overall – blue */
+  --c1: #f7b731;   /* enterprise – amber */
+  --c2: #26de81;   /* mid – green */
+  --c3: #fd9644;   /* resellers – orange */
+  --c4: #fc5c65;   /* smb – red */
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.04);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --transition: 0.2s ease;
 }
-*,*::before,*::after { box-sizing:border-box; margin:0; padding:0 }
-body { font-family: system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); line-height:1.5 }
-button { cursor:pointer; font-family:inherit }
-input  { font-family:inherit }
-svg { display:block }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0d1117; --surface: #161b22; --surface2: #1c2128;
+  --border: #30363d; --text-p: #e6edf3; --text-s: #8b949e; --text-m: #6e7681;
+  --shadow: 0 1px 3px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.3);
+}}
+:root[data-theme="dark"] {
+  --bg: #0d1117; --surface: #161b22; --surface2: #1c2128;
+  --border: #30363d; --text-p: #e6edf3; --text-s: #8b949e; --text-m: #6e7681;
+  --shadow: 0 1px 3px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.3);
+}
 
-/* ══════════════════════════════════════════════════
-   LOGIN SCREEN
-══════════════════════════════════════════════════ */
-#screen-login {
-  min-height:100vh; display:flex; align-items:center; justify-content:center; padding:2rem;
-}
-.login-wrap {
-  width:100%; max-width:420px;
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg); color: var(--text-p); min-height: 100vh; line-height: 1.5; }
+
+/* ── Login overlay ── */
+#login-overlay {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; z-index: 100;
 }
 .login-card {
-  background:var(--surface); border:1px solid var(--border); border-radius:var(--r);
-  padding:2.5rem 2.25rem; box-shadow:var(--sh2);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 40px; width: 380px;
+  box-shadow: var(--shadow);
 }
-.login-brand {
-  display:flex; align-items:center; gap:.6rem; margin-bottom:1.75rem;
-}
-.login-icon {
-  width:40px; height:40px; border-radius:10px; background:var(--accent); display:flex;
-  align-items:center; justify-content:center; color:#fff; font-size:1.15rem;
-}
-.login-brand h1 { font-size:1.2rem; font-weight:700 }
-.login-brand p  { font-size:.78rem; color:var(--text2) }
-.field { margin-bottom:1.125rem }
-.field label {
-  display:block; font-size:.72rem; font-weight:700; text-transform:uppercase;
-  letter-spacing:.07em; color:var(--text2); margin-bottom:.375rem;
-}
+.login-card h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; }
+.login-card p { color: var(--text-s); font-size: .9rem; margin-bottom: 28px; }
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.field label { font-size: .85rem; font-weight: 500; color: var(--text-s); }
 .field input {
-  width:100%; padding:.65rem .9rem; border:1.5px solid var(--border); border-radius:var(--r2);
-  background:var(--bg); color:var(--text); font-size:.9375rem;
-  transition:border-color .15s, box-shadow .15s;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 10px 14px; font-size: .95rem; background: var(--surface2); color: var(--text-p);
+  transition: border-color var(--transition);
 }
-.field input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-s) }
-.hint { font-size:.72rem; color:var(--text3); margin-top:.3rem }
-.btn-login {
-  width:100%; margin-top:1.5rem; padding:.8rem; background:var(--accent); color:#fff;
-  border:none; border-radius:var(--r2); font-size:.9375rem; font-weight:600;
-  transition:background .15s, box-shadow .15s; box-shadow:0 2px 8px rgba(99,102,241,.3);
+.field input:focus { outline: none; border-color: var(--accent); }
+.btn-primary {
+  width: 100%; padding: 11px; background: var(--accent); color: #fff;
+  border: none; border-radius: var(--radius-sm); font-size: .95rem; font-weight: 600;
+  cursor: pointer; transition: background var(--transition);
 }
-.btn-login:hover  { background:var(--accent-h); box-shadow:0 4px 14px rgba(99,102,241,.4) }
-.btn-login:active { transform:scale(.985) }
-.btn-login:disabled { opacity:.55; cursor:not-allowed; box-shadow:none }
-#login-err {
-  display:none; margin-top:.875rem; padding:.65rem .875rem;
-  background:var(--red-s); border:1px solid var(--red); border-radius:var(--r2);
-  font-size:.85rem; color:var(--red); line-height:1.55;
-}
-
-/* CORS help box */
-
-/* ══════════════════════════════════════════════════
-   APP SHELL
-══════════════════════════════════════════════════ */
-#screen-app { display:none; flex-direction:column; min-height:100vh }
-
-header {
-  background:var(--surface); border-bottom:1px solid var(--border);
-  padding:.8rem 1.5rem; display:flex; align-items:center; gap:.875rem;
-  box-shadow:var(--sh); position:sticky; top:0; z-index:50;
-}
-.logo { display:flex; align-items:center; gap:.5rem }
-.logo-icon {
-  width:30px; height:30px; border-radius:7px; background:var(--accent);
-  display:flex; align-items:center; justify-content:center; color:#fff; font-size:.85rem;
-}
-.logo h2 { font-size:.95rem; font-weight:700 }
-.logo span { color:var(--accent) }
-.hdr-right { margin-left:auto; display:flex; align-items:center; gap:.6rem }
-.live-dot {
-  display:flex; align-items:center; gap:.35rem; font-size:.72rem; font-weight:700;
-  color:var(--green); padding:.25rem .6rem; background:var(--green-s); border-radius:999px;
-}
-.live-dot::before { content:''; width:7px; height:7px; border-radius:50%; background:var(--green) }
-.hdr-ts { font-size:.72rem; color:var(--text3) }
-.btn-sm {
-  padding:.35rem .7rem; border-radius:var(--r2); border:1px solid var(--border);
-  background:var(--surface2); color:var(--text2); font-size:.78rem;
-  display:inline-flex; align-items:center; gap:.3rem; transition:background .15s;
-}
-.btn-sm:hover { background:var(--border); color:var(--text) }
-
-main { flex:1; padding:1.5rem; max-width:1540px; margin:0 auto; width:100% }
+.btn-primary:hover { background: var(--accent-h); }
+.btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+#login-error { color: #fc5c65; font-size: .85rem; margin-top: 12px; display: none; }
 
 /* ── Loading ── */
-#state-loading {
-  display:none; flex-direction:column; align-items:center; justify-content:center;
-  min-height:60vh; gap:1.25rem; color:var(--text2);
+#loading-overlay {
+  position: fixed; inset: 0; background: var(--bg);
+  display: none; align-items: center; justify-content: center; z-index: 50;
+  flex-direction: column; gap: 16px;
 }
 .spinner {
-  width:38px; height:38px; border:3px solid var(--border);
-  border-top-color:var(--accent); border-radius:50%;
-  animation:spin .7s linear infinite;
+  width: 40px; height: 40px; border: 3px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite;
 }
-@keyframes spin { to { transform:rotate(360deg) } }
-#state-loading p { font-size:.875rem }
+@keyframes spin { to { transform: rotate(360deg); } }
+#loading-overlay p { color: var(--text-s); font-size: .9rem; }
 
-/* ── Data error ── */
-#state-error {
-  display:none; background:var(--red-s); border:1px solid var(--red); border-radius:var(--r);
-  padding:1.5rem 2rem; margin:2rem auto; max-width:600px; text-align:center;
+/* ── Header ── */
+header {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 16px 24px; display: flex; align-items: center; gap: 16px;
+  flex-wrap: wrap;
 }
-#state-error h3 { font-size:1rem; margin-bottom:.4rem; color:var(--red) }
-#state-error p  { font-size:.85rem; color:var(--red); opacity:.85 }
-
-/* ══════════════════════════════════════════════════
-   DASHBOARD
-══════════════════════════════════════════════════ */
-#dash { display:none }
-
-/* Filter pills */
-.filters { display:flex; gap:.45rem; flex-wrap:wrap; margin-bottom:1.25rem }
-.pill {
-  padding:.35rem .875rem; border-radius:999px; border:1.5px solid var(--border);
-  background:var(--surface); color:var(--text2); font-size:.78rem; font-weight:500;
-  transition:all .15s;
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-icon {
+  width: 36px; height: 36px; background: var(--accent);
+  border-radius: 8px; display: flex; align-items: center; justify-content: center;
 }
-.pill.on { border-color:var(--accent); background:var(--accent-s); color:var(--accent); font-weight:600 }
-.pill:hover:not(.on) { background:var(--surface2) }
-
-/* Section label */
-.sec { font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--text3); margin-bottom:.875rem; margin-top:1.75rem }
-.sec:first-child { margin-top:0 }
-
-/* KPI tiles */
-.kpi-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:.875rem; margin-bottom:1.5rem }
-.kpi {
-  background:var(--surface); border:1px solid var(--border); border-radius:var(--r);
-  padding:1.1rem 1.25rem; box-shadow:var(--sh);
+.logo-icon svg { fill: #fff; }
+header h1 { font-size: 1.1rem; font-weight: 700; }
+header .subtitle { font-size: .8rem; color: var(--text-m); }
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pill-group { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.pill-group button {
+  padding: 7px 16px; background: transparent; border: none; cursor: pointer;
+  font-size: .82rem; font-weight: 500; color: var(--text-s);
+  transition: background var(--transition), color var(--transition);
 }
-.kpi-lbl { font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text2); margin-bottom:.5rem }
-.kpi-val { font-size:1.875rem; font-weight:800; letter-spacing:-.035em; line-height:1 }
-.kpi-sub { font-size:.7rem; color:var(--text3); margin-top:.3rem }
-.good { color:var(--green) }
-.warn { color:var(--amber) }
-.bad  { color:var(--red)   }
-
-/* Segment cards */
-.seg-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:.875rem; margin-bottom:1.5rem }
-.seg {
-  background:var(--surface); border:1px solid var(--border); border-radius:var(--r);
-  padding:.9rem 1.1rem; box-shadow:var(--sh);
+.pill-group button.active { background: var(--accent); color: #fff; }
+.btn-refresh {
+  padding: 7px 14px; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; font-size: .82rem; cursor: pointer; color: var(--text-s);
+  display: flex; align-items: center; gap: 6px; transition: background var(--transition);
 }
-.seg-head { display:flex; align-items:center; gap:.45rem; font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text2); margin-bottom:.7rem }
-.seg-dot  { width:8px; height:8px; border-radius:50%; flex-shrink:0 }
-.seg-line { display:flex; justify-content:space-between; padding:.2rem 0; border-bottom:1px solid var(--surface2) }
-.seg-line:last-child { border-bottom:none }
-.seg-k  { font-size:.775rem; color:var(--text2) }
-.seg-v  { font-size:.825rem; font-weight:600 }
+.btn-refresh:hover { background: var(--border); }
+#last-updated { font-size: .78rem; color: var(--text-m); }
 
-/* Chart grid */
-.chart-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(420px,1fr)); gap:.875rem; margin-bottom:1.5rem }
+/* ── Main ── */
+main { padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+/* ── KPI row ── */
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 24px; }
+.kpi-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px; position: relative; overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.kpi-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: var(--seg-color, var(--accent));
+}
+.kpi-label { font-size: .78rem; font-weight: 600; color: var(--text-m); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+.kpi-value { font-size: 2rem; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+.kpi-sub { font-size: .78rem; color: var(--text-m); }
+.kpi-sla { color: var(--seg-color, var(--accent)); }
+
+/* ── Charts grid ── */
+.charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 16px; margin-bottom: 24px; }
 .chart-card {
-  background:var(--surface); border:1px solid var(--border); border-radius:var(--r);
-  padding:1.25rem; box-shadow:var(--sh);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow);
 }
-.chart-card h3 { font-size:.8rem; font-weight:600; color:var(--text); margin-bottom:1rem }
-.chart-wrap { position:relative; height:210px }
+.chart-card h2 { font-size: .9rem; font-weight: 600; color: var(--text-p); margin-bottom: 4px; }
+.chart-card .chart-subtitle { font-size: .78rem; color: var(--text-m); margin-bottom: 16px; }
+.chart-wrap { position: relative; height: 240px; }
 
-/* Table */
-.tbl-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r); box-shadow:var(--sh); overflow:hidden; margin-bottom:1.5rem }
-.tbl-top { padding:.875rem 1.25rem; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); flex-wrap:wrap; gap:.625rem }
-.tbl-top h3 { font-size:.82rem; font-weight:600 }
-.tbl-count { font-weight:400; color:var(--text2) }
-.tbl-search {
-  padding:.38rem .75rem; border:1.5px solid var(--border); border-radius:var(--r2);
-  background:var(--bg); color:var(--text); font-size:.78rem; width:180px;
-  transition:border-color .15s;
+/* ── Table ── */
+.table-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden;
 }
-.tbl-search:focus { outline:none; border-color:var(--accent) }
-.tbl-scroll { overflow-x:auto; overflow-y:auto; max-height:380px }
-table { width:100%; border-collapse:collapse; font-size:.775rem }
-thead { position:sticky; top:0; z-index:2; background:var(--surface2) }
-th { padding:.575rem 1rem; text-align:left; font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.09em; color:var(--text3); white-space:nowrap; border-bottom:1px solid var(--border) }
-td { padding:.525rem 1rem; border-bottom:1px solid var(--surface2); white-space:nowrap }
-tr:last-child td { border-bottom:none }
-tr:hover td { background:var(--surface2) }
-.chip { display:inline-block; padding:.08rem .45rem; border-radius:999px; font-size:.68rem; font-weight:700 }
-.chip-g { background:var(--green-s); color:var(--green) }
-.chip-a { background:var(--amber-s); color:var(--amber) }
-.chip-r { background:var(--red-s);   color:var(--red)   }
-.chip-b { background:var(--blue-s);  color:var(--blue)  }
-.chip-i { background:var(--accent-s);color:var(--accent) }
+.table-header {
+  padding: 16px 20px; display: flex; align-items: center; gap: 12px;
+  border-bottom: 1px solid var(--border); flex-wrap: wrap;
+}
+.table-header h2 { font-size: .9rem; font-weight: 600; margin-right: auto; }
+.search-box {
+  padding: 7px 12px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface2); color: var(--text-p); font-size: .85rem; width: 200px;
+}
+.search-box:focus { outline: none; border-color: var(--accent); }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+thead th {
+  background: var(--surface2); padding: 10px 14px;
+  text-align: left; font-weight: 600; color: var(--text-s);
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+  cursor: pointer; user-select: none;
+}
+thead th:hover { color: var(--accent); }
+thead th .sort-icon { opacity: .4; margin-left: 4px; }
+thead th.sorted .sort-icon { opacity: 1; color: var(--accent); }
+tbody tr { border-bottom: 1px solid var(--border); transition: background var(--transition); }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--surface2); }
+td { padding: 9px 14px; color: var(--text-s); white-space: nowrap; }
+td.period-cell { color: var(--text-p); font-weight: 500; }
+td.gran-cell { }
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 20px;
+  font-size: .75rem; font-weight: 500;
+}
+.badge-month { background: #eef2ff; color: #4361ee; }
+.badge-day   { background: #f0fdf4; color: #16a34a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .badge-month { background: #1e2a4a; color: #818cf8; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .badge-day   { background: #14261e; color: #4ade80; } }
+.sla-good { color: #16a34a; font-weight: 600; }
+.sla-ok   { color: #f59e0b; font-weight: 600; }
+.sla-bad  { color: #ef4444; font-weight: 600; }
 
-@media(max-width:680px) {
-  main { padding:1rem }
-  .chart-grid { grid-template-columns:1fr }
-  header { padding:.75rem 1rem }
+/* ── Legend ── */
+.legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: .8rem; color: var(--text-s); }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+/* ── Error ── */
+#error-bar {
+  background: #fef2f2; border: 1px solid #fecaca; color: #dc2626;
+  padding: 12px 20px; border-radius: var(--radius-sm); margin-bottom: 16px;
+  display: none; font-size: .88rem;
+}
+.section-title {
+  font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .07em;
+  color: var(--text-m); margin-bottom: 12px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .charts-grid { grid-template-columns: 1fr; }
+  .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  header { gap: 10px; }
+  .header-right { gap: 8px; }
 }
 </style>
 </head>
 <body>
 
-<!-- ══════════ LOGIN ══════════ -->
-<div id="screen-login">
-  <div class="login-wrap">
-    <div class="login-card">
-      <div class="login-brand">
-        <div class="login-icon">📊</div>
-        <div>
-          <h1>Catalog Dashboard</h1>
-          <p>Management Catalog Data · Spyne</p>
-        </div>
+<!-- ── Login Overlay ── -->
+<div id="login-overlay">
+  <div class="login-card">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+      <div style="width:40px;height:40px;background:#4361ee;border-radius:10px;display:flex;align-items:center;justify-content:center">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
       </div>
-
-      <div class="field">
-        <label>Metabase Email</label>
-        <input type="email" id="f-email" placeholder="you@spyne.ai" autocomplete="username"/>
+      <div>
+        <div style="font-size:1.1rem;font-weight:700">Catalog Dashboard</div>
+        <div style="font-size:.78rem;color:var(--text-m)">Management Catalog Data · Q12972</div>
       </div>
-      <div class="field">
-        <label>Password</label>
-        <input type="password" id="f-pass" placeholder="••••••••" autocomplete="current-password"/>
-        <div class="hint">Sent directly to Metabase — never stored or transmitted elsewhere.</div>
-      </div>
-
-      <button class="btn-login" id="btn-login" onclick="doLogin()">Connect &amp; Load Dashboard</button>
-
-      <div id="login-err"></div>
+    </div>
+    <p>Sign in with your Metabase credentials to load live data.</p>
+    <div class="field">
+      <label for="mb-email">Email</label>
+      <input type="email" id="mb-email" placeholder="you@company.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <label for="mb-pass">Password</label>
+      <input type="password" id="mb-pass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-primary" id="login-btn" onclick="doLogin()">Sign in &amp; Load Dashboard</button>
+    <div id="login-error"></div>
+    <div style="margin-top:16px;font-size:.78rem;color:var(--text-m);text-align:center">
+      Data is fetched live from <strong>metabase.spyne.ai</strong>
     </div>
   </div>
 </div>
 
-<!-- ══════════ APP ══════════ -->
-<div id="screen-app">
-  <header>
-    <div class="logo">
-      <div class="logo-icon">📊</div>
-      <h2>Spyne <span>Catalog</span></h2>
-    </div>
-    <div class="hdr-right">
-      <span class="live-dot">LIVE</span>
-      <span class="hdr-ts" id="hdr-ts"></span>
-      <button class="btn-sm" onclick="reload()">↻&nbsp;Refresh</button>
-      <button class="btn-sm" onclick="signOut()">Sign out</button>
-    </div>
-  </header>
-
-  <main>
-    <!-- Loading -->
-    <div id="state-loading">
-      <div class="spinner"></div>
-      <p id="load-msg">Running catalog query — this may take 30–60 s…</p>
-    </div>
-
-    <!-- Error -->
-    <div id="state-error">
-      <h3>⚠ Could not load data</h3>
-      <p id="err-msg"></p>
-    </div>
-
-    <!-- Dashboard -->
-    <div id="dash">
-      <!-- Granularity pills -->
-      <div class="filters">
-        <button class="pill on" data-g="all"   onclick="setGran(this)">All</button>
-        <button class="pill"    data-g="month" onclick="setGran(this)">Monthly</button>
-        <button class="pill"    data-g="day"   onclick="setGran(this)">Daily</button>
-      </div>
-
-      <!-- KPIs -->
-      <div class="sec">Overall — Latest Period</div>
-      <div class="kpi-row" id="kpi-row"></div>
-
-      <!-- Segments -->
-      <div class="sec">Segment Snapshot — Latest Period</div>
-      <div class="seg-row" id="seg-row"></div>
-
-      <!-- Charts -->
-      <div class="sec">Trends</div>
-      <div class="chart-grid">
-        <div class="chart-card">
-          <h3>Monthly SLA % — All Segments</h3>
-          <div class="chart-wrap"><canvas id="ch-msla"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <h3>Daily SLA % — Overall</h3>
-          <div class="chart-wrap"><canvas id="ch-dsla"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <h3>Daily P99 TAT (hrs) — All Segments</h3>
-          <div class="chart-wrap"><canvas id="ch-p99"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <h3>Monthly P95 TAT (hrs) — All Segments</h3>
-          <div class="chart-wrap"><canvas id="ch-p95"></canvas></div>
-        </div>
-      </div>
-
-      <!-- Table -->
-      <div class="tbl-card">
-        <div class="tbl-top">
-          <h3>Raw Data <span class="tbl-count" id="tbl-count"></span></h3>
-          <input class="tbl-search" id="tbl-q" placeholder="Search period…" oninput="renderTable()"/>
-        </div>
-        <div class="tbl-scroll">
-          <table>
-            <thead><tr>
-              <th>Gran.</th><th>Period</th>
-              <th>Overall SLA%</th><th>P99</th><th>P95</th>
-              <th>Ent SLA%</th><th>Mid SLA%</th><th>Resellers SLA%</th><th>SMB SLA%</th>
-            </tr></thead>
-            <tbody id="tbl-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </div><!-- /dash -->
-  </main>
+<!-- ── Loading Overlay ── -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <p id="loading-msg">Loading dashboard data…</p>
 </div>
 
+<!-- ── Header ── -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+    </div>
+    <div>
+      <h1>Management Catalog Data</h1>
+      <div class="subtitle">SLA % &amp; TAT Performance · Segments</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="pill-group" id="gran-toggle">
+      <button class="active" onclick="setGran('month')">Monthly</button>
+      <button onclick="setGran('day')">Daily</button>
+    </div>
+    <button class="btn-refresh" onclick="refreshData()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 8 8h-2a6 6 0 1 1-1.76-4.24L13 11h7V4l-2.35 2.35z"/></svg>
+      Refresh
+    </button>
+    <div id="last-updated"></div>
+  </div>
+</header>
+
+<!-- ── Main Content ── -->
+<main id="main-content" style="display:none">
+  <div id="error-bar"></div>
+
+  <!-- KPI tiles -->
+  <div class="section-title">Latest Period SLA Performance</div>
+  <div class="kpi-row" id="kpi-row"></div>
+
+  <!-- Charts -->
+  <div class="section-title" style="margin-top:8px">Trends Over Time</div>
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h2>SLA % by Segment</h2>
+      <div class="chart-subtitle">Percentage of orders meeting SLA target</div>
+      <div class="chart-wrap"><canvas id="chart-sla"></canvas></div>
+      <div class="legend" id="legend-sla"></div>
+    </div>
+    <div class="chart-card">
+      <h2>P95 TAT Hours by Segment</h2>
+      <div class="chart-subtitle">95th-percentile turnaround time (hours)</div>
+      <div class="chart-wrap"><canvas id="chart-p95"></canvas></div>
+      <div class="legend" id="legend-p95"></div>
+    </div>
+    <div class="chart-card">
+      <h2>P99 TAT Hours by Segment</h2>
+      <div class="chart-subtitle">99th-percentile turnaround time (hours)</div>
+      <div class="chart-wrap"><canvas id="chart-p99"></canvas></div>
+      <div class="legend" id="legend-p99"></div>
+    </div>
+    <div class="chart-card">
+      <h2>Overall SLA % vs TAT</h2>
+      <div class="chart-subtitle">Overall SLA % and overall P95 TAT (hours)</div>
+      <div class="chart-wrap"><canvas id="chart-overall"></canvas></div>
+      <div class="legend" id="legend-overall"></div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-card">
+    <div class="table-header">
+      <h2>Raw Data</h2>
+      <input class="search-box" id="search" type="text" placeholder="Search period…" oninput="renderTable()">
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr id="thead-row"></tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
 <script>
-// ── Config — uses the catalog-api proxy on the same origin ────
-// All API calls go to /v1/mb/* (relative), so no CORS issues.
-const API = '';
+const MB_URL = 'https://metabase.spyne.ai';
+const CARD_ID = 12972;
 
-// ── State ─────────────────────────────────────────────────────
-let TOKEN = '';
-let ROWS  = [];    // parsed row objects
-let GRAN  = 'all'; // 'all' | 'month' | 'day'
-
-// Chart.js instances (to destroy/recreate on refresh)
-const CHARTS = {};
-
-// ── Categorical palette — fixed order, CVD-separated ─────────
-const PAL = {
-  overall:   '#6366f1',
-  ent:       '#0ea5e9',
-  mid:       '#a855f7',
-  resellers: '#f59e0b',
-  smb:       '#10b981',
-};
 const SEGS = [
-  { key:'ent',       label:'Enterprise', color:PAL.ent       },
-  { key:'mid',       label:'Mid-Market', color:PAL.mid       },
-  { key:'resellers', label:'Resellers',  color:PAL.resellers },
-  { key:'smb',       label:'SMB',        color:PAL.smb       },
+  { key: 'overall',   label: 'Overall',    color: '#4361ee', sla: 'sla_pct',           p99: 'p99_tat_hrs',           p95: 'p95_tat_hrs'           },
+  { key: 'ent',       label: 'Enterprise', color: '#f7b731', sla: 'ent_sla_pct',        p99: 'ent_p99_tat_hrs',        p95: 'ent_p95_tat_hrs'        },
+  { key: 'mid',       label: 'Mid-Market', color: '#26de81', sla: 'mid_sla_pct',        p99: 'mid_p99_tat_hrs',        p95: 'mid_p95_tat_hrs'        },
+  { key: 'resellers', label: 'Resellers',  color: '#fd9644', sla: 'resellers_sla_pct',  p99: 'resellers_p99_tat_hrs',  p95: 'resellers_p95_tat_hrs'  },
+  { key: 'smb',       label: 'SMB',        color: '#fc5c65', sla: 'smb_sla_pct',        p99: 'smb_p99_tat_hrs',        p95: 'smb_p95_tat_hrs'        },
 ];
 
-// ── Auth ──────────────────────────────────────────────────────
-async function doLogin() {
-  const btn   = document.getElementById('btn-login');
-  const errEl = document.getElementById('login-err');
-  errEl.style.display = 'none';
-  btn.disabled = true;
-  btn.textContent = 'Connecting…';
+let allRows = [];    // {colName: value, ...}[]
+let colNames = [];
+let mbToken = sessionStorage.getItem('mb_token') || '';
+let gran = 'month';
+let charts = {};
+let sortCol = 'sort_date';
+let sortDir = 1;
 
-  const email = document.getElementById('f-email').value.trim();
-  const pass  = document.getElementById('f-pass').value;
-  if (!email || !pass) {
-    showLoginErr('Please enter your email and password.');
-    return reset();
-  }
+/* ── Helpers ── */
+const $ = id => document.getElementById(id);
+function fmtPct(v) { return v == null ? '—' : v.toFixed(2) + '%'; }
+function fmtHrs(v) { return v == null ? '—' : v.toFixed(2) + 'h'; }
+function slaClass(v) { if (v == null) return ''; return v >= 95 ? 'sla-good' : v >= 90 ? 'sla-ok' : 'sla-bad'; }
+
+function showError(msg) {
+  const el = $('error-bar');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function hideError() { $('error-bar').style.display = 'none'; }
+
+/* ── Auth ── */
+async function doLogin() {
+  const email = $('mb-email').value.trim();
+  const pass  = $('mb-pass').value;
+  const errEl = $('login-error');
+  const btn   = $('login-btn');
+
+  if (!email || !pass) { errEl.textContent = 'Please enter email and password.'; errEl.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = 'Signing in…'; errEl.style.display = 'none';
 
   try {
-    const r = await fetch(`${API}/v1/mb/session`, {
+    const res = await fetch(`${MB_URL}/api/session`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: email, password: pass }),
     });
-
-    if (!r.ok) {
-      let msg = `Login failed (${r.status})`;
-      try {
-        const j = await r.json();
-        msg = j.errors?.password || j.errors?.username || j.message || j.error || msg;
-      } catch(_) {}
-      throw new Error(msg);
-    }
-
-    const j = await r.json();
-    TOKEN = j.id || j.token || '';
-    if (!TOKEN) throw new Error('No session token returned.');
-
-    document.getElementById('screen-login').style.display = 'none';
-    document.getElementById('screen-app').style.display  = 'flex';
-    await fetchData();
-
-  } catch(e) {
-    showLoginErr(e.message || String(e));
-    reset();
-  }
-
-  function reset() {
-    btn.disabled = false;
-    btn.textContent = 'Connect & Load Dashboard';
+    const json = await res.json();
+    if (!res.ok || !json.id) throw new Error(json.message || json.errors?.password || 'Login failed');
+    mbToken = json.id;
+    sessionStorage.setItem('mb_token', mbToken);
+    $('login-overlay').style.display = 'none';
+    await loadData();
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Sign in & Load Dashboard';
   }
 }
 
-function showLoginErr(msg) {
-  const el = document.getElementById('login-err');
-  el.textContent = msg;
-  el.style.display = 'block';
-}
+$('mb-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
-function signOut() {
-  TOKEN = ''; ROWS = [];
-  Object.values(CHARTS).forEach(c => c.destroy());
-  document.getElementById('screen-app').style.display   = 'none';
-  document.getElementById('screen-login').style.display = 'flex';
-  document.getElementById('f-pass').value = '';
-}
-
-// ── Data fetch ────────────────────────────────────────────────
-async function fetchData() {
-  showLoading('Running catalog query — this may take 30–60 s…');
+/* ── Data loading ── */
+async function loadData() {
+  const lo = $('loading-overlay');
+  lo.style.display = 'flex';
+  $('loading-msg').textContent = 'Fetching live data from Metabase…';
+  hideError();
 
   try {
-    const r = await fetch(`${API}/v1/mb/query`, {
+    const res = await fetch(`${MB_URL}/api/card/${CARD_ID}/query`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Metabase-Session': TOKEN,
-      },
+      headers: { 'Content-Type': 'application/json', 'X-Metabase-Session': mbToken },
+      body: JSON.stringify({ ignore_cache: false }),
+    });
+    if (res.status === 401) {
+      sessionStorage.removeItem('mb_token');
+      mbToken = '';
+      lo.style.display = 'none';
+      $('login-overlay').style.display = 'flex';
+      $('login-error').textContent = 'Session expired. Please sign in again.';
+      $('login-error').style.display = 'block';
+      return;
+    }
+    if (!res.ok) throw new Error(`Metabase returned ${res.status}`);
+
+    const json = await res.json();
+    colNames = json.data.cols.map(c => c.name);
+    allRows = json.data.rows.map(r => {
+      const obj = {};
+      colNames.forEach((k, i) => obj[k] = r[i]);
+      return obj;
     });
 
-    if (r.status === 401) throw new Error('Session expired. Please sign in again.');
-    if (!r.ok) {
-      const t = await r.text().catch(() => '');
-      throw new Error(`Query failed (${r.status}): ${t.slice(0,200)}`);
-    }
-
-    const payload = await r.json();
-    parsePayload(payload);
-
+    $('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    render();
   } catch(e) {
-    hideLoading();
-    showDataErr(e.message || String(e));
+    showError('Failed to load data: ' + e.message);
+  } finally {
+    lo.style.display = 'none';
+    $('main-content').style.display = 'block';
   }
 }
 
-async function reload() {
-  if (!TOKEN) return;
-  document.getElementById('dash').style.display = 'none';
-  await fetchData();
-}
+async function refreshData() { await loadData(); }
 
-// ── Parse Metabase response ───────────────────────────────────
-function parsePayload(payload) {
-  const data = payload.data || payload;
-  const cols = (data.cols || []).map(c => c.name || c.display_name || '');
-  const raw  = data.rows || [];
-
-  ROWS = raw.map(r => {
-    const obj = {};
-    cols.forEach((c, i) => { obj[c] = r[i]; });
-    return obj;
+/* ── Gran toggle ── */
+function setGran(g) {
+  gran = g;
+  document.querySelectorAll('#gran-toggle button').forEach((b,i) => {
+    b.classList.toggle('active', (i === 0 && g === 'month') || (i === 1 && g === 'day'));
   });
-
-  if (!ROWS.length) {
-    hideLoading();
-    showDataErr('Query returned 0 rows — check the Metabase question or try refreshing.');
-    return;
-  }
-
-  hideLoading();
-  document.getElementById('hdr-ts').textContent = 'Updated ' + new Date().toLocaleTimeString();
-  document.getElementById('dash').style.display = 'block';
-  renderAll();
+  render();
 }
 
-// ── Granularity filter ────────────────────────────────────────
-function setGran(btn) {
-  GRAN = btn.dataset.g;
-  document.querySelectorAll('.pill').forEach(b => b.classList.remove('on'));
-  btn.classList.add('on');
-  renderAll();
-}
+/* ── Main render ── */
+function render() {
+  const rows = allRows.filter(r => r.granularity === gran)
+    .sort((a,b) => new Date(a.sort_date) - new Date(b.sort_date));
 
-function visible() {
-  if (GRAN === 'all') return ROWS;
-  return ROWS.filter(r => (r.granularity || '').toLowerCase() === GRAN);
-}
-function byMonth(rows) {
-  return rows
-    .filter(r => (r.granularity || '').toLowerCase() === 'month')
-    .sort((a, b) => String(a.sort_date || a.sort_group || '').localeCompare(String(b.sort_date || b.sort_group || '')));
-}
-function byDay(rows) {
-  return rows
-    .filter(r => (r.granularity || '').toLowerCase() === 'day')
-    .sort((a, b) => String(a.sort_date || '').localeCompare(String(b.sort_date || '')));
-}
-
-function renderAll() {
-  const rows = visible();
-  const mo = byMonth(rows);
-  const da = byDay(rows);
-  const latest = mo.length ? mo[mo.length - 1] : (da.length ? da[da.length - 1] : null);
-
-  renderKPIs(latest);
-  renderSegs(latest);
-  buildChart('ch-msla', buildMonthlySLA(mo));
-  buildChart('ch-dsla', buildDailySLA(da));
-  buildChart('ch-p99',  buildP99(da));
-  buildChart('ch-p95',  buildP95(mo));
+  renderKPIs(rows);
+  renderCharts(rows);
   renderTable();
 }
 
-// ── Formatters ────────────────────────────────────────────────
-function n(v, d = 1, u = '') {
-  const f = parseFloat(v);
-  return isNaN(f) ? '—' : f.toFixed(d) + u;
-}
-function pct(v) { return n(v, 1, '%') }
+/* ── KPI ── */
+function renderKPIs(rows) {
+  if (!rows.length) { $('kpi-row').innerHTML = '<p style="color:var(--text-m)">No data</p>'; return; }
+  const last = rows[rows.length - 1];
+  const periodLabel = gran === 'month' ? last.period : new Date(last.sort_date).toLocaleDateString();
 
-function slaClass(v) {
-  const f = parseFloat(v);
-  if (isNaN(f)) return '';
-  return f >= 95 ? 'good' : f >= 85 ? 'warn' : 'bad';
-}
-function slaChip(v) {
-  const f = parseFloat(v);
-  const cls = isNaN(f) ? '' : f >= 95 ? 'chip-g' : f >= 85 ? 'chip-a' : 'chip-r';
-  return `<span class="chip ${cls}">${isNaN(f) ? '—' : f.toFixed(1) + '%'}</span>`;
-}
-
-// ── KPI tiles ─────────────────────────────────────────────────
-function renderKPIs(row) {
-  const el = document.getElementById('kpi-row');
-  if (!row) { el.innerHTML = '<p style="color:var(--text3)">No data for this filter</p>'; return; }
-
-  const tiles = [
-    { l: 'SLA %',   v: pct(row.sla_pct),        c: slaClass(row.sla_pct), s: 'Overall' },
-    { l: 'P99 TAT', v: n(row.p99_tat_hrs, 1, ' hrs'), c: '', s: 'Overall' },
-    { l: 'P95 TAT', v: n(row.p95_tat_hrs, 1, ' hrs'), c: '', s: 'Overall' },
-    { l: 'Period',  v: row.period || '—',        c: '', s: (row.granularity || '').toLowerCase() },
-  ];
-
-  el.innerHTML = tiles.map(t => `
-    <div class="kpi">
-      <div class="kpi-lbl">${t.l}</div>
-      <div class="kpi-val ${t.c}">${t.v}</div>
-      <div class="kpi-sub">${t.s}</div>
-    </div>`).join('');
-}
-
-// ── Segment cards ─────────────────────────────────────────────
-function renderSegs(row) {
-  const el = document.getElementById('seg-row');
-  if (!row) { el.innerHTML = ''; return; }
-
-  el.innerHTML = SEGS.map(s => `
-    <div class="seg">
-      <div class="seg-head">
-        <span class="seg-dot" style="background:${s.color}"></span>${s.label}
+  $('kpi-row').innerHTML = SEGS.map(s => `
+    <div class="kpi-card" style="--seg-color:${s.color}">
+      <div class="kpi-label">${s.label}</div>
+      <div class="kpi-value kpi-sla ${slaClass(last[s.sla])}">${fmtPct(last[s.sla])}</div>
+      <div class="kpi-sub">SLA · ${periodLabel}</div>
+      <div style="margin-top:8px;display:flex;gap:12px">
+        <div>
+          <div style="font-size:.7rem;color:var(--text-m)">P95 TAT</div>
+          <div style="font-size:.9rem;font-weight:600">${fmtHrs(last[s.p95])}</div>
+        </div>
+        <div>
+          <div style="font-size:.7rem;color:var(--text-m)">P99 TAT</div>
+          <div style="font-size:.9rem;font-weight:600">${fmtHrs(last[s.p99])}</div>
+        </div>
       </div>
-      <div class="seg-line">
-        <span class="seg-k">SLA %</span>
-        <span class="seg-v ${slaClass(row[s.key + '_sla_pct'])}">${pct(row[s.key + '_sla_pct'])}</span>
-      </div>
-      <div class="seg-line">
-        <span class="seg-k">P99 TAT</span>
-        <span class="seg-v">${n(row[s.key + '_p99_tat_hrs'], 1, ' hrs')}</span>
-      </div>
-      <div class="seg-line">
-        <span class="seg-k">P95 TAT</span>
-        <span class="seg-v">${n(row[s.key + '_p95_tat_hrs'], 1, ' hrs')}</span>
-      </div>
-    </div>`).join('');
+    </div>
+  `).join('');
 }
 
-// ── Chart.js helpers ──────────────────────────────────────────
-function makeDataset(label, data, color, fill = false) {
+/* ── Chart utils ── */
+function mkLabel(r) {
+  return gran === 'month' ? r.period : new Date(r.sort_date).toLocaleDateString('en-GB', {day:'2-digit',month:'short'});
+}
+
+function mkDataset(rows, seg, field) {
   return {
-    label, data,
-    borderColor: color,
-    backgroundColor: fill ? color + '1a' : color + '00',
+    label: seg.label,
+    data: rows.map(r => r[field] != null ? +r[field].toFixed(2) : null),
+    borderColor: seg.color,
+    backgroundColor: seg.color + '22',
     borderWidth: 2,
-    pointRadius: data.length > 60 ? 0 : 3,
-    pointHoverRadius: 5,
-    pointBackgroundColor: color,
-    tension: 0.3,
-    fill,
+    pointRadius: gran === 'month' ? 5 : 2,
+    pointHoverRadius: 7,
+    tension: 0.35,
+    spanGaps: true,
   };
 }
 
-const GRID_COLOR = 'rgba(0,0,0,.06)';
-const TARGET_LINE = {
-  id: 'target95',
-  beforeDraw(chart, _, opts) {
-    if (!opts.value) return;
-    const { ctx, scales: { y } } = chart;
-    const yVal = y.getPixelForValue(opts.value);
-    ctx.save();
-    ctx.strokeStyle = opts.color || '#ef4444';
-    ctx.lineWidth = 1.2;
-    ctx.setLineDash([5, 4]);
-    ctx.beginPath();
-    ctx.moveTo(chart.chartArea.left, yVal);
-    ctx.lineTo(chart.chartArea.right, yVal);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = opts.color || '#ef4444';
-    ctx.font = '9px system-ui';
-    ctx.fillText('95% target', chart.chartArea.left + 4, yVal - 4);
-    ctx.restore();
-  }
+const CHART_DEFAULTS = {
+  responsive: true, maintainAspectRatio: false,
+  interaction: { mode: 'index', intersect: false },
+  plugins: { legend: { display: false }, tooltip: { padding: 10, cornerRadius: 8 } },
+  scales: {
+    x: { grid: { display: false }, ticks: { maxRotation: 45, font: { size: 11 } } },
+    y: { grid: { color: 'rgba(128,128,128,.1)' }, ticks: { font: { size: 11 } } },
+  },
 };
 
-function chartOptions(yLabel = '', plugins = {}) {
-  return {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: { mode: 'index', intersect: false },
-    plugins: {
-      legend: {
-        position: 'bottom',
-        labels: { boxWidth: 10, boxHeight: 10, font: { size: 10 }, padding: 12, usePointStyle: true, pointStyleWidth: 10 },
-      },
-      tooltip: {
-        backgroundColor: '#1f2937',
-        titleFont: { size: 11 },
-        bodyFont: { size: 10.5 },
-        padding: 10,
-        cornerRadius: 6,
-        callbacks: {
-          label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y != null ? ctx.parsed.y.toFixed(2) : '—'}${yLabel}`
-        }
-      },
-      ...plugins,
-    },
-    scales: {
-      x: {
-        grid: { color: GRID_COLOR, drawBorder: false },
-        ticks: { font: { size: 9.5 }, color: '#9ca3af', maxRotation: 40, autoSkip: true, maxTicksLimit: 10 },
-      },
-      y: {
-        grid: { color: GRID_COLOR, drawBorder: false },
-        ticks: { font: { size: 9.5 }, color: '#9ca3af' },
-      },
-    },
-  };
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+function mkLegend(id, segs) {
+  $(id).innerHTML = segs.map(s => `
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${s.color}"></div>
+      <span>${s.label}</span>
+    </div>
+  `).join('');
 }
 
-function buildChart(id, { labels, datasets, yLabel, target }) {
-  if (CHARTS[id]) { CHARTS[id].destroy(); delete CHARTS[id]; }
-  const canvas = document.getElementById(id);
-  if (!canvas || !labels.length) return;
+function renderCharts(rows) {
+  const labels = rows.map(mkLabel);
 
-  const pluginOpts = target ? { target95: { value: target, color: '#ef4444' } } : {};
-  const opts = chartOptions(yLabel, pluginOpts);
-
-  // If SLA chart add a little extra padding at top/bottom for the target line
-  if (target) {
-    opts.scales.y.suggestedMin = Math.max(0, Math.min(...datasets.flatMap(d => d.data).filter(v => v != null)) - 5);
-    opts.scales.y.suggestedMax = 100;
-  }
-
-  CHARTS[id] = new Chart(canvas, {
+  // SLA chart
+  destroyChart('sla');
+  charts['sla'] = new Chart($('chart-sla'), {
     type: 'line',
-    data: { labels, datasets },
-    options: opts,
-    plugins: target ? [TARGET_LINE] : [],
+    data: { labels, datasets: SEGS.map(s => mkDataset(rows, s, s.sla)) },
+    options: {
+      ...CHART_DEFAULTS,
+      scales: {
+        ...CHART_DEFAULTS.scales,
+        y: { ...CHART_DEFAULTS.scales.y, min: 60, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } } }
+      },
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        tooltip: {
+          ...CHART_DEFAULTS.plugins.tooltip,
+          callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(2)}%` }
+        }
+      }
+    }
   });
+  mkLegend('legend-sla', SEGS);
+
+  // P95 chart
+  destroyChart('p95');
+  charts['p95'] = new Chart($('chart-p95'), {
+    type: 'line',
+    data: { labels, datasets: SEGS.map(s => mkDataset(rows, s, s.p95)) },
+    options: {
+      ...CHART_DEFAULTS,
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        tooltip: {
+          ...CHART_DEFAULTS.plugins.tooltip,
+          callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(2)}h` }
+        }
+      }
+    }
+  });
+  mkLegend('legend-p95', SEGS);
+
+  // P99 chart
+  destroyChart('p99');
+  charts['p99'] = new Chart($('chart-p99'), {
+    type: 'line',
+    data: { labels, datasets: SEGS.map(s => mkDataset(rows, s, s.p99)) },
+    options: {
+      ...CHART_DEFAULTS,
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        tooltip: {
+          ...CHART_DEFAULTS.plugins.tooltip,
+          callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(2)}h` }
+        }
+      }
+    }
+  });
+  mkLegend('legend-p99', SEGS);
+
+  // Overall SLA vs P95 (single series each)
+  destroyChart('overall');
+  charts['overall'] = new Chart($('chart-overall'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Overall SLA %', data: rows.map(r => r.sla_pct != null ? +r.sla_pct.toFixed(2) : null),
+          borderColor: '#4361ee', backgroundColor: '#4361ee22', borderWidth: 2, pointRadius: gran==='month'?5:2, tension: 0.35, yAxisID: 'ySla', spanGaps: true },
+        { label: 'Overall P95 TAT', data: rows.map(r => r.p95_tat_hrs != null ? +r.p95_tat_hrs.toFixed(2) : null),
+          borderColor: '#fc5c65', backgroundColor: '#fc5c6522', borderWidth: 2, pointRadius: gran==='month'?5:2, tension: 0.35, yAxisID: 'yTat', spanGaps: true, borderDash: [4,3] },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { display: false }, tooltip: { padding: 10, cornerRadius: 8 } },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxRotation: 45, font: { size: 11 } } },
+        ySla: { position: 'left', min: 60, max: 100, grid: { color: 'rgba(128,128,128,.1)' }, ticks: { callback: v => v + '%', font: { size: 11 }, color: '#4361ee' } },
+        yTat: { position: 'right', grid: { drawOnChartArea: false }, ticks: { callback: v => v + 'h', font: { size: 11 }, color: '#fc5c65' } },
+      }
+    }
+  });
+  $('legend-overall').innerHTML = `
+    <div class="legend-item"><div class="legend-dot" style="background:#4361ee"></div><span>Overall SLA %</span></div>
+    <div class="legend-item"><div class="legend-dot" style="background:#fc5c65"></div><span>P95 TAT (hrs)</span></div>
+  `;
 }
 
-// ── Chart data builders ───────────────────────────────────────
-function buildMonthlySLA(mo) {
-  if (!mo.length) return { labels: [], datasets: [], yLabel: '%' };
-  return {
-    labels: mo.map(r => r.period),
-    yLabel: '%', target: 95,
-    datasets: [
-      makeDataset('Overall',   mo.map(r => parseFloat(r.sla_pct)),           PAL.overall),
-      makeDataset('Ent',       mo.map(r => parseFloat(r.ent_sla_pct)),       PAL.ent),
-      makeDataset('Mid',       mo.map(r => parseFloat(r.mid_sla_pct)),       PAL.mid),
-      makeDataset('Resellers', mo.map(r => parseFloat(r.resellers_sla_pct)), PAL.resellers),
-      makeDataset('SMB',       mo.map(r => parseFloat(r.smb_sla_pct)),       PAL.smb),
-    ],
-  };
-}
+/* ── Table ── */
+const TABLE_COLS = [
+  { key: 'period',            label: 'Period',            fmt: (v,r) => `<span class="period-cell">${r.period || new Date(r.sort_date).toLocaleDateString()}</span>` },
+  { key: 'granularity',       label: 'Granularity',       fmt: v => `<span class="badge badge-${v}">${v}</span>` },
+  { key: 'sla_pct',           label: 'Overall SLA %',     fmt: v => `<span class="${slaClass(v)}">${fmtPct(v)}</span>` },
+  { key: 'p95_tat_hrs',       label: 'P95 TAT',           fmt: v => fmtHrs(v) },
+  { key: 'p99_tat_hrs',       label: 'P99 TAT',           fmt: v => fmtHrs(v) },
+  { key: 'ent_sla_pct',       label: 'Ent SLA %',         fmt: v => `<span class="${slaClass(v)}">${fmtPct(v)}</span>` },
+  { key: 'ent_p95_tat_hrs',   label: 'Ent P95',           fmt: v => fmtHrs(v) },
+  { key: 'mid_sla_pct',       label: 'Mid SLA %',         fmt: v => `<span class="${slaClass(v)}">${fmtPct(v)}</span>` },
+  { key: 'mid_p95_tat_hrs',   label: 'Mid P95',           fmt: v => fmtHrs(v) },
+  { key: 'resellers_sla_pct', label: 'Resellers SLA %',   fmt: v => `<span class="${slaClass(v)}">${fmtPct(v)}</span>` },
+  { key: 'resellers_p95_tat_hrs', label: 'Res P95',       fmt: v => fmtHrs(v) },
+  { key: 'smb_sla_pct',       label: 'SMB SLA %',         fmt: v => `<span class="${slaClass(v)}">${fmtPct(v)}</span>` },
+  { key: 'smb_p95_tat_hrs',   label: 'SMB P95',           fmt: v => fmtHrs(v) },
+];
 
-function buildDailySLA(da) {
-  if (!da.length) return { labels: [], datasets: [], yLabel: '%' };
-  return {
-    labels: da.map(r => r.sort_date || r.period),
-    yLabel: '%', target: 95,
-    datasets: [
-      makeDataset('Overall', da.map(r => parseFloat(r.sla_pct)), PAL.overall, true),
-    ],
-  };
-}
-
-function buildP99(da) {
-  if (!da.length) return { labels: [], datasets: [], yLabel: ' hrs' };
-  return {
-    labels: da.map(r => r.sort_date || r.period),
-    yLabel: ' hrs',
-    datasets: [
-      makeDataset('Overall',   da.map(r => parseFloat(r.p99_tat_hrs)),           PAL.overall),
-      makeDataset('Ent',       da.map(r => parseFloat(r.ent_p99_tat_hrs)),       PAL.ent),
-      makeDataset('Mid',       da.map(r => parseFloat(r.mid_p99_tat_hrs)),       PAL.mid),
-      makeDataset('Resellers', da.map(r => parseFloat(r.resellers_p99_tat_hrs)), PAL.resellers),
-      makeDataset('SMB',       da.map(r => parseFloat(r.smb_p99_tat_hrs)),       PAL.smb),
-    ],
-  };
-}
-
-function buildP95(mo) {
-  if (!mo.length) return { labels: [], datasets: [], yLabel: ' hrs' };
-  return {
-    labels: mo.map(r => r.period),
-    yLabel: ' hrs',
-    datasets: [
-      makeDataset('Overall',   mo.map(r => parseFloat(r.p95_tat_hrs)),           PAL.overall),
-      makeDataset('Ent',       mo.map(r => parseFloat(r.ent_p95_tat_hrs)),       PAL.ent),
-      makeDataset('Mid',       mo.map(r => parseFloat(r.mid_p95_tat_hrs)),       PAL.mid),
-      makeDataset('Resellers', mo.map(r => parseFloat(r.resellers_p95_tat_hrs)), PAL.resellers),
-      makeDataset('SMB',       mo.map(r => parseFloat(r.smb_p95_tat_hrs)),       PAL.smb),
-    ],
-  };
-}
-
-// ── Table ─────────────────────────────────────────────────────
 function renderTable() {
-  const q = (document.getElementById('tbl-q').value || '').toLowerCase();
-  let rows = visible();
-  if (q) rows = rows.filter(r => String(r.period || '').toLowerCase().includes(q));
+  const query = ($('search').value || '').toLowerCase();
 
-  rows = [...rows].sort((a, b) => {
-    const ga = (a.granularity || '').toLowerCase();
-    const gb = (b.granularity || '').toLowerCase();
-    if (ga !== gb) return ga < gb ? -1 : 1;
-    return String(a.sort_date || '').localeCompare(String(b.sort_date || ''));
-  });
-
-  document.getElementById('tbl-count').textContent = `(${rows.length} rows)`;
-  const tbody = document.getElementById('tbl-body');
-
-  if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text3)">No rows match</td></tr>`;
-    return;
+  // Header (once)
+  const thead = $('thead-row');
+  if (!thead.children.length) {
+    thead.innerHTML = TABLE_COLS.map(c => `
+      <th onclick="sortBy('${c.key}')" data-col="${c.key}">
+        ${c.label} <span class="sort-icon">↕</span>
+      </th>
+    `).join('');
   }
 
-  tbody.innerHTML = rows.map(r => {
-    const g = (r.granularity || '').toLowerCase();
-    const gc = g === 'month' ? '<span class="chip chip-b">Month</span>' : '<span class="chip chip-i">Day</span>';
-    return `<tr>
-      <td>${gc}</td>
-      <td>${r.period || '—'}</td>
-      <td>${slaChip(r.sla_pct)}</td>
-      <td>${n(r.p99_tat_hrs, 1, ' h')}</td>
-      <td>${n(r.p95_tat_hrs, 1, ' h')}</td>
-      <td>${slaChip(r.ent_sla_pct)}</td>
-      <td>${slaChip(r.mid_sla_pct)}</td>
-      <td>${slaChip(r.resellers_sla_pct)}</td>
-      <td>${slaChip(r.smb_sla_pct)}</td>
-    </tr>`;
-  }).join('');
+  let rows = allRows.filter(r => {
+    const period = (r.period || r.sort_date || '').toString().toLowerCase();
+    const gOk = !gran || r.granularity === gran;
+    const qOk = !query || period.includes(query);
+    return gOk && qOk;
+  });
+
+  // Sort
+  rows.sort((a, b) => {
+    let av = a[sortCol], bv = b[sortCol];
+    if (typeof av === 'string') return av.localeCompare(bv) * sortDir;
+    return ((av ?? 0) - (bv ?? 0)) * sortDir;
+  });
+
+  // Update sort indicators
+  document.querySelectorAll('#thead-row th').forEach(th => {
+    th.classList.toggle('sorted', th.dataset.col === sortCol);
+  });
+
+  $('tbody').innerHTML = rows.map(r => `
+    <tr>${TABLE_COLS.map(c => `<td>${c.fmt(r[c.key], r)}</td>`).join('')}</tr>
+  `).join('') || `<tr><td colspan="${TABLE_COLS.length}" style="text-align:center;padding:24px;color:var(--text-m)">No rows found</td></tr>`;
 }
 
-// ── UI state helpers ──────────────────────────────────────────
-function showLoading(msg) {
-  document.getElementById('state-loading').style.display = 'flex';
-  document.getElementById('load-msg').textContent = msg || 'Loading…';
-  document.getElementById('state-error').style.display = 'none';
-  document.getElementById('dash').style.display = 'none';
-}
-function hideLoading() {
-  document.getElementById('state-loading').style.display = 'none';
-}
-function showDataErr(msg) {
-  document.getElementById('err-msg').textContent = msg;
-  document.getElementById('state-error').style.display = 'block';
+function sortBy(col) {
+  if (sortCol === col) sortDir = -sortDir;
+  else { sortCol = col; sortDir = 1; }
+  renderTable();
 }
 
-// ── Keyboard: Enter to login ──────────────────────────────────
-document.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && document.getElementById('screen-login').style.display !== 'none') doLogin();
-});
-
-// ── Resize: redraw charts ─────────────────────────────────────
-let resizeT;
-window.addEventListener('resize', () => {
-  clearTimeout(resizeT);
-  resizeT = setTimeout(() => { if (ROWS.length) renderAll(); }, 220);
-});
+/* ── Init ── */
+if (mbToken) {
+  $('login-overlay').style.display = 'none';
+  loadData();
+}
 </script>
 </body>
 </html>
