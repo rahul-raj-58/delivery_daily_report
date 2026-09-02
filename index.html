@@ -6,21 +6,22 @@
 <title>Management Catalog Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 
-<!-- ════════════════════════════════════════════════════════════
-     ✏️  PASTE YOUR METABASE CREDENTIALS HERE — save & restart server
-     ════════════════════════════════════════════════════════════ -->
+<!-- ════════════════════════════════════════════════════
+     CONFIG — fill in your Metabase credentials
+     ════════════════════════════════════════════════════ -->
 <script>
-  const MB_EMAIL    = 'rahul.raj@spyne.ai';   // ← your Metabase email
-  const MB_PASSWORD = 'Sonal*123@';            // ← your Metabase password
+  const MB_URL      = 'https://metabase.spyne.ai';
+  const CARD_ID     = 12972;
+  const MB_EMAIL    = 'rahul.raj@spyne.ai';   // ← replace
+  const MB_PASSWORD = 'Sonal*123@';          // ← replace
 </script>
-<!-- ══════════════════════════════════════════════════════════ -->
+<!-- ═════════════════════════════════════════════════ -->
 
 <style>
 :root {
   --bg:#f0f4f8;--surface:#fff;--surface2:#f7f9fc;
   --border:#e2e8f0;--text-p:#1a202c;--text-s:#4a5568;--text-m:#718096;
   --accent:#4361ee;--accent-h:#3451d1;
-  --c0:#4361ee;--c1:#f7b731;--c2:#26de81;--c3:#fd9644;--c4:#fc5c65;
   --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.04);
   --radius:12px;--radius-sm:8px;
 }
@@ -44,14 +45,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 .splash-icon{width:56px;height:56px;background:var(--accent);border-radius:14px;
   display:flex;align-items:center;justify-content:center;}
 .splash-icon svg{fill:#fff;}
-#splash h1{font-size:1.3rem;font-weight:700;}
+#splash h1{font-size:1.3rem;font-weight:700;text-align:center;}
 #splash-msg{color:var(--text-s);font-size:.9rem;}
 .spinner{width:34px;height:34px;border:3px solid var(--border);
   border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
-#splash-err{color:#fc5c65;font-size:.85rem;max-width:380px;text-align:center;
-  background:#fef2f2;border:1px solid #fecaca;padding:12px 16px;border-radius:8px;display:none;}
-#splash-err code{background:#fee2e2;padding:2px 5px;border-radius:4px;font-size:.82rem;}
+#splash-err{color:#dc2626;font-size:.85rem;max-width:420px;text-align:center;
+  background:#fef2f2;border:1px solid #fecaca;padding:14px 18px;border-radius:8px;
+  display:none;line-height:1.7;}
+#splash-err code{background:#fee2e2;padding:2px 6px;border-radius:4px;font-size:.8rem;}
+.btn-retry{margin-top:10px;padding:8px 20px;background:var(--accent);color:#fff;
+  border:none;border-radius:8px;cursor:pointer;font-size:.85rem;font-weight:600;}
 
 /* ── Header ── */
 header{background:var(--surface);border-bottom:1px solid var(--border);
@@ -71,8 +75,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);
   display:flex;align-items:center;gap:5px;transition:background .15s;}
 .btn-sm:hover{background:var(--border);}
 #ts{font-size:.75rem;color:var(--text-m);}
-.user-pill{font-size:.78rem;color:var(--text-m);background:var(--surface2);
-  border:1px solid var(--border);padding:5px 10px;border-radius:20px;}
+.user-pill{font-size:.75rem;color:var(--text-m);background:var(--surface2);
+  border:1px solid var(--border);padding:4px 10px;border-radius:20px;}
 
 /* ── Main ── */
 main{padding:22px;max-width:1400px;margin:0 auto;}
@@ -142,7 +146,10 @@ td{padding:8px 13px;color:var(--text-s);white-space:nowrap;}
   <h1>Management Catalog Dashboard</h1>
   <p id="splash-msg">Connecting to Metabase…</p>
   <div class="spinner" id="spinner"></div>
-  <div id="splash-err"></div>
+  <div id="splash-err">
+    <div id="splash-err-text"></div>
+    <button class="btn-retry" onclick="boot()" style="margin-top:12px">Retry</button>
+  </div>
 </div>
 
 <!-- Header -->
@@ -211,108 +218,128 @@ td{padding:8px 13px;color:var(--text-s);white-space:nowrap;}
 </main>
 
 <script>
-/* ── Config — proxy routes, no CORS ── */
-const API_SESSION = '/v1/mb/session';
-const API_QUERY   = '/v1/mb/query';
-
-const SEGS = [
-  {key:'overall',   label:'Overall',    color:'#4361ee', sla:'sla_pct',           p99:'p99_tat_hrs',           p95:'p95_tat_hrs'          },
-  {key:'ent',       label:'Enterprise', color:'#f7b731', sla:'ent_sla_pct',        p99:'ent_p99_tat_hrs',        p95:'ent_p95_tat_hrs'       },
-  {key:'mid',       label:'Mid-Market', color:'#26de81', sla:'mid_sla_pct',        p99:'mid_p99_tat_hrs',        p95:'mid_p95_tat_hrs'       },
-  {key:'resellers', label:'Resellers',  color:'#fd9644', sla:'resellers_sla_pct',  p99:'resellers_p99_tat_hrs',  p95:'resellers_p95_tat_hrs' },
-  {key:'smb',       label:'SMB',        color:'#fc5c65', sla:'smb_sla_pct',        p99:'smb_p99_tat_hrs',        p95:'smb_p95_tat_hrs'       },
+const SEGS=[
+  {key:'overall',   label:'Overall',    color:'#4361ee',sla:'sla_pct',          p99:'p99_tat_hrs',          p95:'p95_tat_hrs'         },
+  {key:'ent',       label:'Enterprise', color:'#f7b731',sla:'ent_sla_pct',       p99:'ent_p99_tat_hrs',       p95:'ent_p95_tat_hrs'      },
+  {key:'mid',       label:'Mid-Market', color:'#26de81',sla:'mid_sla_pct',       p99:'mid_p99_tat_hrs',       p95:'mid_p95_tat_hrs'      },
+  {key:'resellers', label:'Resellers',  color:'#fd9644',sla:'resellers_sla_pct', p99:'resellers_p99_tat_hrs', p95:'resellers_p95_tat_hrs'},
+  {key:'smb',       label:'SMB',        color:'#fc5c65',sla:'smb_sla_pct',       p99:'smb_p99_tat_hrs',       p95:'smb_p95_tat_hrs'      },
 ];
 
-let allRows=[], gran='month', charts={}, sortCol='sort_date', sortDir=1, mbToken='';
+let allRows=[],gran='month',charts={},sortCol='sort_date',sortDir=1,mbToken='';
 const $=id=>document.getElementById(id);
 const fp=v=>v==null?'—':Number(v).toFixed(2)+'%';
 const fh=v=>v==null?'—':Number(v).toFixed(2)+'h';
 const sc=v=>v==null?'':v>=95?'sg':v>=90?'so':'sb';
 
-/* ── Auto-login on page load ── */
-window.addEventListener('DOMContentLoaded', async () => {
-  try {
-    $('splash-msg').textContent = 'Signing in to Metabase…';
-    const sr = await fetch(API_SESSION, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: MB_EMAIL, password: MB_PASSWORD })
-    });
-    const sj = await sr.json();
-    if (!sr.ok || !sj.id) throw new Error(sj.message || sj.errors?.password || `Auth failed (${sr.status})`);
-    mbToken = sj.id;
-    $('user-pill').textContent = MB_EMAIL;
-    await loadData();
-  } catch(e) {
-    $('spinner').style.display = 'none';
-    $('splash-msg').textContent = 'Sign-in failed.';
-    $('splash-err').innerHTML = `<strong>Error:</strong> ${e.message}<br><br>
-      Make sure the server is running: <code>cd catalog-api &amp;&amp; npm run dev</code><br>
-      Then open <code>http://localhost:3000</code> in your browser.`;
-    $('splash-err').style.display = 'block';
-  }
-});
+function showSplashErr(msg){
+  $('spinner').style.display='none';
+  $('splash-err-text').innerHTML=msg;
+  $('splash-err').style.display='block';
+}
 
-async function loadData() {
-  $('splash').style.display = 'flex';
-  $('main').style.display = 'none';
-  $('splash-msg').textContent = 'Loading dashboard data…';
-  $('splash-err').style.display = 'none';
-  if($('spinner')) $('spinner').style.display = 'block';
+async function boot(){
+  $('splash').style.display='flex';
+  $('main').style.display='none';
+  $('splash-msg').textContent='Signing in to Metabase…';
+  $('splash-err').style.display='none';
+  $('spinner').style.display='block';
+
+  if(MB_EMAIL==='YOUR_EMAIL@spyne.ai'){
+    showSplashErr('Open this file in a text editor and set <code>MB_EMAIL</code> and <code>MB_PASSWORD</code> at the top, then save.');
+    return;
+  }
+
   try {
-    const r = await fetch(API_QUERY, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Metabase-Session': mbToken }
+    const sr=await fetch(`${MB_URL}/api/session`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({username:MB_EMAIL,password:MB_PASSWORD})
     });
-    if (r.status === 401) {
-      // Re-auth
-      const sr = await fetch(API_SESSION, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({username:MB_EMAIL, password:MB_PASSWORD})
-      });
-      const sj = await sr.json();
-      if (!sr.ok || !sj.id) throw new Error('Session expired and re-auth failed.');
-      mbToken = sj.id;
-      return loadData();
+    const sj=await sr.json();
+    if(!sr.ok||!sj.id) throw new Error(sj.message||sj.errors?.password||`Auth failed (${sr.status})`);
+    mbToken=sj.id;
+    $('user-pill').textContent=MB_EMAIL;
+    await loadData();
+  } catch(e){
+    const isCors=/failed to fetch|load failed|network|cors/i.test(e.message);
+    if(isCors){
+      showSplashErr(`
+        <strong>CORS error — Metabase is blocking requests from this origin.</strong><br><br>
+        To fix, ask your Metabase admin to add your GitHub Pages URL to Metabase's allowed origins:<br>
+        <strong>Metabase Admin → Settings → General → Allowed CORS origins</strong><br><br>
+        Add: <code>${location.origin}</code>
+      `);
+    } else {
+      showSplashErr(`<strong>Sign-in failed:</strong> ${e.message}`);
     }
-    if (!r.ok) throw new Error(`Server returned ${r.status}`);
-    const j = await r.json();
-    if (j.error) throw new Error(j.error);
-    const cols = j.data.cols.map(c=>c.name);
-    allRows = j.data.rows.map(row=>{ const o={}; cols.forEach((k,i)=>o[k]=row[i]); return o; });
-    $('ts').textContent = 'Updated ' + new Date().toLocaleTimeString();
-    $('splash').style.display = 'none';
-    $('main').style.display = 'block';
-    render();
-  } catch(e) {
-    $('spinner').style.display = 'none';
-    $('splash-msg').textContent = 'Failed to load data.';
-    $('splash-err').innerHTML = `<strong>Error:</strong> ${e.message}`;
-    $('splash-err').style.display = 'block';
   }
 }
 
-async function refreshData() { await loadData(); }
+async function loadData(){
+  $('splash').style.display='flex';
+  $('main').style.display='none';
+  $('splash-msg').textContent='Loading dashboard data…';
+  $('splash-err').style.display='none';
+  $('spinner').style.display='block';
+  try{
+    const r=await fetch(`${MB_URL}/api/card/${CARD_ID}/query`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Metabase-Session':mbToken},
+      body:JSON.stringify({ignore_cache:false})
+    });
+    if(r.status===401){
+      // token expired, re-auth
+      const sr=await fetch(`${MB_URL}/api/session`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({username:MB_EMAIL,password:MB_PASSWORD})
+      });
+      const sj=await sr.json();
+      if(!sr.ok||!sj.id) throw new Error('Session expired and re-auth failed.');
+      mbToken=sj.id;
+      return loadData();
+    }
+    if(!r.ok) throw new Error(`Metabase returned ${r.status}`);
+    const j=await r.json();
+    if(j.error) throw new Error(j.error);
+    const cols=j.data.cols.map(c=>c.name);
+    allRows=j.data.rows.map(row=>{const o={};cols.forEach((k,i)=>o[k]=row[i]);return o;});
+    $('ts').textContent='Updated '+new Date().toLocaleTimeString();
+    $('splash').style.display='none';
+    $('main').style.display='block';
+    render();
+  }catch(e){
+    showSplashErr(`<strong>Failed to load data:</strong> ${e.message}`);
+  }
+}
 
-function setGran(g) {
-  gran = g;
-  document.querySelectorAll('#gran-toggle button').forEach((b,i) =>
+async function refreshData(){
+  $('main').style.display='none';
+  $('splash').style.display='flex';
+  $('splash-msg').textContent='Refreshing…';
+  $('splash-err').style.display='none';
+  $('spinner').style.display='block';
+  await loadData();
+}
+
+function setGran(g){
+  gran=g;
+  document.querySelectorAll('#gran-toggle button').forEach((b,i)=>
     b.classList.toggle('active',(i===0&&g==='month')||(i===1&&g==='day')));
   render();
 }
 
-function render() {
-  const rows = allRows.filter(r=>r.granularity===gran)
+function render(){
+  const rows=allRows.filter(r=>r.granularity===gran)
     .sort((a,b)=>new Date(a.sort_date)-new Date(b.sort_date));
-  renderKPIs(rows); renderCharts(rows); renderTable();
+  renderKPIs(rows);renderCharts(rows);renderTable();
 }
 
-/* ── KPIs ── */
-function renderKPIs(rows) {
-  if (!rows.length) { $('kpi-row').innerHTML='<p style="color:var(--text-m)">No data for this granularity.</p>'; return; }
-  const last = rows[rows.length-1];
-  const per = gran==='month' ? last.period : new Date(last.sort_date).toLocaleDateString();
-  $('kpi-row').innerHTML = SEGS.map(s=>`
+function renderKPIs(rows){
+  if(!rows.length){$('kpi-row').innerHTML='<p style="color:var(--text-m)">No data.</p>';return;}
+  const last=rows[rows.length-1];
+  const per=gran==='month'?last.period:new Date(last.sort_date).toLocaleDateString();
+  $('kpi-row').innerHTML=SEGS.map(s=>`
     <div class="kpi" style="--seg:${s.color}">
       <div class="kpi-lbl">${s.label}</div>
       <div class="kpi-val ${sc(last[s.sla])}" style="color:${s.color}">${fp(last[s.sla])}</div>
@@ -324,24 +351,21 @@ function renderKPIs(rows) {
     </div>`).join('');
 }
 
-/* ── Charts ── */
-const CDEF = {
-  responsive:true, maintainAspectRatio:false,
+const CDEF={responsive:true,maintainAspectRatio:false,
   interaction:{mode:'index',intersect:false},
   plugins:{legend:{display:false},tooltip:{padding:9,cornerRadius:8}},
   scales:{x:{grid:{display:false},ticks:{maxRotation:45,font:{size:10}}},
-    y:{grid:{color:'rgba(128,128,128,.1)'},ticks:{font:{size:10}}}}
-};
+    y:{grid:{color:'rgba(128,128,128,.1)'},ticks:{font:{size:10}}}}};
 function mkLbl(r){return gran==='month'?r.period:new Date(r.sort_date).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});}
-function mkDS(rows,seg,field){return{label:seg.label,data:rows.map(r=>r[field]!=null?+Number(r[field]).toFixed(2):null),
+function mkDS(rows,seg,field){return{label:seg.label,
+  data:rows.map(r=>r[field]!=null?+Number(r[field]).toFixed(2):null),
   borderColor:seg.color,backgroundColor:seg.color+'22',borderWidth:2,
   pointRadius:gran==='month'?5:2,pointHoverRadius:7,tension:0.35,spanGaps:true};}
 function mkLeg(id,segs){$(id).innerHTML=segs.map(s=>`<div class="li"><div class="ld" style="background:${s.color}"></div><span>${s.label}</span></div>`).join('');}
 function dc(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 
-function renderCharts(rows) {
-  const labels = rows.map(mkLbl);
-
+function renderCharts(rows){
+  const labels=rows.map(mkLbl);
   dc('sla');charts['sla']=new Chart($('c-sla'),{type:'line',data:{labels,datasets:SEGS.map(s=>mkDS(rows,s,s.sla))},
     options:{...CDEF,scales:{...CDEF.scales,y:{...CDEF.scales.y,min:60,max:100,ticks:{callback:v=>v+'%',font:{size:10}}}},
     plugins:{...CDEF.plugins,tooltip:{...CDEF.plugins.tooltip,callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(2)}%`}}}}});
@@ -358,40 +382,42 @@ function renderCharts(rows) {
   dc('ov');charts['ov']=new Chart($('c-ov'),{type:'line',
     data:{labels,datasets:[
       {label:'Overall SLA %',data:rows.map(r=>r.sla_pct!=null?+Number(r.sla_pct).toFixed(2):null),
-        borderColor:'#4361ee',backgroundColor:'#4361ee22',borderWidth:2,pointRadius:gran==='month'?5:2,tension:0.35,yAxisID:'ySla',spanGaps:true},
+        borderColor:'#4361ee',backgroundColor:'#4361ee22',borderWidth:2,
+        pointRadius:gran==='month'?5:2,tension:0.35,yAxisID:'ySla',spanGaps:true},
       {label:'P95 TAT (h)',data:rows.map(r=>r.p95_tat_hrs!=null?+Number(r.p95_tat_hrs).toFixed(2):null),
-        borderColor:'#fc5c65',backgroundColor:'#fc5c6522',borderWidth:2,pointRadius:gran==='month'?5:2,tension:0.35,yAxisID:'yTat',spanGaps:true,borderDash:[4,3]},
+        borderColor:'#fc5c65',backgroundColor:'#fc5c6522',borderWidth:2,
+        pointRadius:gran==='month'?5:2,tension:0.35,yAxisID:'yTat',spanGaps:true,borderDash:[4,3]},
     ]},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
       plugins:{legend:{display:false},tooltip:{padding:9,cornerRadius:8}},
       scales:{x:{grid:{display:false},ticks:{maxRotation:45,font:{size:10}}},
-        ySla:{position:'left',min:60,max:100,grid:{color:'rgba(128,128,128,.1)'},ticks:{callback:v=>v+'%',font:{size:10},color:'#4361ee'}},
-        yTat:{position:'right',grid:{drawOnChartArea:false},ticks:{callback:v=>v+'h',font:{size:10},color:'#fc5c65'}}}}});
-  $('l-ov').innerHTML='<div class="li"><div class="ld" style="background:#4361ee"></div><span>Overall SLA %</span></div><div class="li"><div class="ld" style="background:#fc5c65;border-radius:0"></div><span>P95 TAT (hrs)</span></div>';
+        ySla:{position:'left',min:60,max:100,grid:{color:'rgba(128,128,128,.1)'},
+          ticks:{callback:v=>v+'%',font:{size:10},color:'#4361ee'}},
+        yTat:{position:'right',grid:{drawOnChartArea:false},
+          ticks:{callback:v=>v+'h',font:{size:10},color:'#fc5c65'}}}}});
+  $('l-ov').innerHTML='<div class="li"><div class="ld" style="background:#4361ee"></div><span>Overall SLA %</span></div><div class="li"><div class="ld" style="background:#fc5c65"></div><span>P95 TAT (hrs)</span></div>';
 }
 
-/* ── Table ── */
 const TCOLS=[
-  {key:'period',      fmt:(v,r)=>`<span class="pc">${r.period||new Date(r.sort_date).toLocaleDateString()}</span>`, label:'Period'},
-  {key:'granularity', fmt:v=>`<span class="badge b${v[0]}">${v}</span>`, label:'Granularity'},
-  {key:'sla_pct',           fmt:v=>`<span class="${sc(v)}">${fp(v)}</span>`, label:'Overall SLA %'},
-  {key:'p95_tat_hrs',       fmt:v=>fh(v), label:'P95 TAT'},
-  {key:'p99_tat_hrs',       fmt:v=>fh(v), label:'P99 TAT'},
-  {key:'ent_sla_pct',       fmt:v=>`<span class="${sc(v)}">${fp(v)}</span>`, label:'Ent SLA %'},
-  {key:'ent_p95_tat_hrs',   fmt:v=>fh(v), label:'Ent P95'},
-  {key:'mid_sla_pct',       fmt:v=>`<span class="${sc(v)}">${fp(v)}</span>`, label:'Mid SLA %'},
-  {key:'mid_p95_tat_hrs',   fmt:v=>fh(v), label:'Mid P95'},
-  {key:'resellers_sla_pct', fmt:v=>`<span class="${sc(v)}">${fp(v)}</span>`, label:'Res SLA %'},
-  {key:'resellers_p95_tat_hrs',fmt:v=>fh(v), label:'Res P95'},
-  {key:'smb_sla_pct',       fmt:v=>`<span class="${sc(v)}">${fp(v)}</span>`, label:'SMB SLA %'},
-  {key:'smb_p95_tat_hrs',   fmt:v=>fh(v), label:'SMB P95'},
+  {key:'period',      fmt:(v,r)=>`<span class="pc">${r.period||new Date(r.sort_date).toLocaleDateString()}</span>`,label:'Period'},
+  {key:'granularity', fmt:v=>`<span class="badge b${v[0]}">${v}</span>`,label:'Granularity'},
+  {key:'sla_pct',              fmt:v=>`<span class="${sc(v)}">${fp(v)}</span>`,label:'Overall SLA %'},
+  {key:'p95_tat_hrs',          fmt:v=>fh(v),label:'P95 TAT'},
+  {key:'p99_tat_hrs',          fmt:v=>fh(v),label:'P99 TAT'},
+  {key:'ent_sla_pct',          fmt:v=>`<span class="${sc(v)}">${fp(v)}</span>`,label:'Ent SLA %'},
+  {key:'ent_p95_tat_hrs',      fmt:v=>fh(v),label:'Ent P95'},
+  {key:'mid_sla_pct',          fmt:v=>`<span class="${sc(v)}">${fp(v)}</span>`,label:'Mid SLA %'},
+  {key:'mid_p95_tat_hrs',      fmt:v=>fh(v),label:'Mid P95'},
+  {key:'resellers_sla_pct',    fmt:v=>`<span class="${sc(v)}">${fp(v)}</span>`,label:'Res SLA %'},
+  {key:'resellers_p95_tat_hrs',fmt:v=>fh(v),label:'Res P95'},
+  {key:'smb_sla_pct',          fmt:v=>`<span class="${sc(v)}">${fp(v)}</span>`,label:'SMB SLA %'},
+  {key:'smb_p95_tat_hrs',      fmt:v=>fh(v),label:'SMB P95'},
 ];
 
 function renderTable(){
   const q=($('srch').value||'').toLowerCase();
   if(!$('thead').children.length)
     $('thead').innerHTML=TCOLS.map(c=>`<th onclick="sBy('${c.key}')" data-col="${c.key}">${c.label}<span class="si">↕</span></th>`).join('');
-
   let rows=allRows.filter(r=>{
     const gok=r.granularity===gran;
     const qok=!q||(r.period||r.sort_date||'').toString().toLowerCase().includes(q);
@@ -404,6 +430,9 @@ function renderTable(){
     ||`<tr><td colspan="${TCOLS.length}" style="text-align:center;padding:22px;color:var(--text-m)">No rows</td></tr>`;
 }
 function sBy(col){if(sortCol===col)sortDir=-sortDir;else{sortCol=col;sortDir=1;}renderTable();}
+
+// Start
+boot();
 </script>
 </body>
 </html>
