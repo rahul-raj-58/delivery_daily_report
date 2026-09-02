@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Management Catalog Dashboard</title>
+<style>
+  /* ── Reset & Tokens ─────────────────────────────────────────── */
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#f5f6fa;--surface:#ffffff;--surface2:#f0f2f7;--border:#e2e6f0;
+    --text:#1a1d2e;--text2:#6b7280;--text3:#9ca3af;
+    --accent:#5b5ef4;--accent-light:#ededfd;--accent-dark:#4040d0;
+    --green:#10b981;--green-light:#d1fae5;
+    --red:#ef4444;--red-light:#fee2e2;
+    --amber:#f59e0b;--amber-light:#fef3c7;
+    --blue:#3b82f6;--blue-light:#dbeafe;
+    --purple:#8b5cf6;--purple-light:#ede9fe;
+    --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+    --shadow-md:0 4px 12px rgba(0,0,0,.1);
+    --radius:10px;--radius-sm:6px;
+  }
+  [data-theme="dark"]{
+    --bg:#0f1117;--surface:#1a1d2e;--surface2:#242738;--border:#2d3148;
+    --text:#e8eaf0;--text2:#9ba3b8;--text3:#6b7388;
+    --accent:#7c7ef6;--accent-light:#2a2b5a;--accent-dark:#9a9cf8;
+    --green:#34d399;--green-light:#064e3b;
+    --red:#f87171;--red-light:#7f1d1d;
+    --amber:#fbbf24;--amber-light:#78350f;
+    --blue:#60a5fa;--blue-light:#1e3a5f;
+    --purple:#a78bfa;--purple-light:#3b0764;
+    --shadow:0 1px 3px rgba(0,0,0,.3);
+    --shadow-md:0 4px 12px rgba(0,0,0,.4);
+  }
+  body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;min-height:100vh}
+  button{cursor:pointer;font-family:inherit}
+  input{font-family:inherit}
+  a{color:var(--accent);text-decoration:none}
+
+  /* ── Login Screen ───────────────────────────────────────────── */
+  #login-screen{
+    min-height:100vh;display:flex;align-items:center;justify-content:center;
+    padding:2rem;
+  }
+  .login-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:2.5rem;width:100%;max-width:420px;box-shadow:var(--shadow-md);
+  }
+  .login-card h1{font-size:1.5rem;font-weight:700;margin-bottom:.25rem}
+  .login-card p{color:var(--text2);font-size:.875rem;margin-bottom:2rem}
+  .field{margin-bottom:1.25rem}
+  .field label{display:block;font-size:.8125rem;font-weight:600;color:var(--text2);margin-bottom:.375rem;text-transform:uppercase;letter-spacing:.04em}
+  .field input{
+    width:100%;padding:.6rem .875rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);
+    background:var(--bg);color:var(--text);font-size:.9375rem;
+    transition:border-color .15s;
+  }
+  .field input:focus{outline:none;border-color:var(--accent)}
+  .field .hint{font-size:.75rem;color:var(--text3);margin-top:.3rem}
+  .btn-primary{
+    width:100%;padding:.75rem;background:var(--accent);color:#fff;border:none;
+    border-radius:var(--radius-sm);font-size:.9375rem;font-weight:600;
+    transition:background .15s,transform .1s;
+  }
+  .btn-primary:hover{background:var(--accent-dark)}
+  .btn-primary:active{transform:scale(.98)}
+  .btn-primary:disabled{opacity:.6;cursor:not-allowed}
+  #login-error{
+    display:none;background:var(--red-light);color:var(--red);
+    border:1px solid var(--red);border-radius:var(--radius-sm);
+    padding:.625rem .875rem;font-size:.875rem;margin-top:1rem;
+  }
+  .cors-notice{
+    margin-top:1.25rem;padding:.75rem;background:var(--amber-light);
+    border:1px solid var(--amber);border-radius:var(--radius-sm);
+    font-size:.8rem;color:var(--text2);
+  }
+  .cors-notice strong{color:var(--text)}
+
+  /* ── App Shell ──────────────────────────────────────────────── */
+  #app{display:none;flex-direction:column;min-height:100vh}
+  header{
+    background:var(--surface);border-bottom:1px solid var(--border);
+    padding:.875rem 1.5rem;display:flex;align-items:center;gap:1rem;
+    box-shadow:var(--shadow);position:sticky;top:0;z-index:100;
+  }
+  .logo{font-size:1.1rem;font-weight:700;color:var(--text)}
+  .logo span{color:var(--accent)}
+  .header-meta{margin-left:auto;display:flex;align-items:center;gap:.75rem}
+  .badge{
+    font-size:.75rem;padding:.2rem .6rem;border-radius:999px;font-weight:600;
+    background:var(--green-light);color:var(--green);
+  }
+  .btn-icon{
+    background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);
+    padding:.375rem .65rem;font-size:.8rem;color:var(--text2);
+    display:flex;align-items:center;gap:.35rem;transition:background .15s;
+  }
+  .btn-icon:hover{background:var(--border);color:var(--text)}
+  main{flex:1;padding:1.5rem;max-width:1600px;margin:0 auto;width:100%}
+
+  /* ── Loading / Error ────────────────────────────────────────── */
+  #loading{
+    display:none;flex-direction:column;align-items:center;justify-content:center;
+    min-height:60vh;gap:1.25rem;color:var(--text2);
+  }
+  .spinner{
+    width:40px;height:40px;border:3px solid var(--border);
+    border-top-color:var(--accent);border-radius:50%;
+    animation:spin .7s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #load-status{font-size:.9rem}
+  #fetch-error{
+    display:none;background:var(--red-light);border:1px solid var(--red);
+    color:var(--red);border-radius:var(--radius);padding:1.5rem 2rem;margin:2rem auto;
+    max-width:640px;text-align:center;
+  }
+  #fetch-error h3{font-size:1.1rem;margin-bottom:.5rem}
+  #fetch-error p{font-size:.875rem;opacity:.85}
+
+  /* ── Dashboard Content ──────────────────────────────────────── */
+  #dashboard{display:none}
+  .section-title{
+    font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+    color:var(--text3);margin-bottom:.875rem;margin-top:1.75rem;
+  }
+  .section-title:first-child{margin-top:0}
+
+  /* Filters */
+  .filters{display:flex;gap:.625rem;margin-bottom:1.25rem;flex-wrap:wrap}
+  .filter-btn{
+    padding:.4rem .875rem;border-radius:999px;border:1.5px solid var(--border);
+    background:var(--surface);color:var(--text2);font-size:.8125rem;font-weight:500;
+    transition:all .15s;
+  }
+  .filter-btn.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent)}
+  .filter-btn:hover:not(.active){background:var(--surface2)}
+
+  /* KPI Grid */
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem}
+  .kpi{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:1.125rem 1.25rem;box-shadow:var(--shadow);
+  }
+  .kpi-label{font-size:.75rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem}
+  .kpi-value{font-size:1.75rem;font-weight:700;letter-spacing:-.02em}
+  .kpi-sub{font-size:.75rem;color:var(--text3);margin-top:.25rem}
+  .kpi-good{color:var(--green)}
+  .kpi-warn{color:var(--amber)}
+  .kpi-bad{color:var(--red)}
+
+  /* Segment Cards */
+  .segments-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-bottom:1.5rem}
+  .seg-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:1rem 1.25rem;box-shadow:var(--shadow);
+  }
+  .seg-title{font-size:.8125rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem}
+  .seg-dot{width:8px;height:8px;border-radius:50%}
+  .seg-row{display:flex;justify-content:space-between;align-items:center;padding:.25rem 0;border-bottom:1px solid var(--surface2)}
+  .seg-row:last-child{border-bottom:none}
+  .seg-key{font-size:.8rem;color:var(--text2)}
+  .seg-val{font-size:.875rem;font-weight:600}
+
+  /* Charts */
+  .charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(440px,1fr));gap:1rem;margin-bottom:1.5rem}
+  .chart-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:1.25rem;box-shadow:var(--shadow);
+  }
+  .chart-card h3{font-size:.875rem;font-weight:600;margin-bottom:1rem;color:var(--text)}
+  .chart-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  svg.chart{display:block;width:100%;height:auto}
+
+  /* Table */
+  .table-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    box-shadow:var(--shadow);overflow:hidden;margin-bottom:1.5rem;
+  }
+  .table-header{
+    padding:.875rem 1.25rem;display:flex;align-items:center;justify-content:space-between;
+    border-bottom:1px solid var(--border);flex-wrap:wrap;gap:.75rem;
+  }
+  .table-header h3{font-size:.875rem;font-weight:600}
+  .search-box{
+    padding:.4rem .75rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);
+    background:var(--bg);color:var(--text);font-size:.8125rem;width:200px;
+  }
+  .search-box:focus{outline:none;border-color:var(--accent)}
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;max-height:420px;overflow-y:auto}
+  table{width:100%;border-collapse:collapse;font-size:.8125rem}
+  thead{position:sticky;top:0;z-index:2;background:var(--surface2)}
+  th{padding:.65rem 1rem;text-align:left;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);white-space:nowrap;border-bottom:1px solid var(--border)}
+  td{padding:.6rem 1rem;border-bottom:1px solid var(--surface2);white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:var(--surface2)}
+  .chip{display:inline-block;padding:.1rem .5rem;border-radius:999px;font-size:.7rem;font-weight:600}
+  .chip-green{background:var(--green-light);color:var(--green)}
+  .chip-amber{background:var(--amber-light);color:var(--amber)}
+  .chip-red{background:var(--red-light);color:var(--red)}
+  .chip-blue{background:var(--blue-light);color:var(--blue)}
+  .chip-purple{background:var(--purple-light);color:var(--purple)}
+
+  .logout-btn{background:none;border:none;color:var(--text2);font-size:.8rem;padding:.35rem .6rem;border-radius:var(--radius-sm)}
+  .logout-btn:hover{background:var(--surface2);color:var(--text)}
+  .last-refresh{font-size:.75rem;color:var(--text3)}
+  @media(max-width:640px){
+    main{padding:1rem}
+    .charts-grid{grid-template-columns:1fr}
+    header{padding:.75rem 1rem}
+  }
+</style>
+</head>
+<body>
+
+<!-- ──────────────────────── LOGIN SCREEN ──────────────────────── -->
+<div id="login-screen">
+  <div class="login-card">
+    <h1>📊 Catalog Dashboard</h1>
+    <p>Sign in with your Metabase credentials to load live data.</p>
+
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="mb-email" placeholder="you@company.com" autocomplete="username"/>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="mb-pass" placeholder="••••••••" autocomplete="current-password"/>
+      <div class="hint">Credentials are sent directly to Metabase — never stored or logged here.</div>
+    </div>
+
+    <div class="field">
+      <label>Metabase URL</label>
+      <input type="url" id="mb-url" value="https://metabase.spyne.ai"/>
+    </div>
+
+    <button class="btn-primary" id="login-btn" onclick="doLogin()">Connect &amp; Load Dashboard</button>
+    <div id="login-error"></div>
+
+    <div class="cors-notice">
+      <strong>💡 CORS note:</strong> If your browser blocks cross-origin requests, open this file from the same origin as Metabase, or enable a browser CORS extension temporarily. The app shows a clear error if this happens.
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────── APP SHELL ─────────────────────────── -->
+<div id="app">
+  <header>
+    <div class="logo">Spyne <span>Catalog</span> Dashboard</div>
+    <div class="header-meta">
+      <span class="badge" id="live-badge">● LIVE</span>
+      <span class="last-refresh" id="refresh-ts"></span>
+      <button class="btn-icon" onclick="refreshData()">↻ Refresh</button>
+      <button class="logout-btn" onclick="doLogout()">Sign out</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Loading -->
+    <div id="loading">
+      <div class="spinner"></div>
+      <div id="load-status">Connecting to Metabase…</div>
+    </div>
+
+    <!-- Error -->
+    <div id="fetch-error">
+      <h3>⚠️ Could not load data</h3>
+      <p id="fetch-error-msg"></p>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard">
+      <!-- Granularity filter -->
+      <div class="filters" id="gran-filter">
+        <button class="filter-btn active" data-gran="all" onclick="setGran(this,'all')">All</button>
+        <button class="filter-btn" data-gran="month" onclick="setGran(this,'month')">Monthly</button>
+        <button class="filter-btn" data-gran="day" onclick="setGran(this,'day')">Daily</button>
+      </div>
+
+      <!-- KPI Tiles (latest month) -->
+      <div class="section-title">Overall — Latest Month KPIs</div>
+      <div class="kpi-grid" id="kpi-grid"></div>
+
+      <!-- Segment Cards -->
+      <div class="section-title">Segment Breakdown — Latest Month</div>
+      <div class="segments-grid" id="seg-grid"></div>
+
+      <!-- Charts -->
+      <div class="section-title">Trends</div>
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h3>Monthly SLA % — All Segments</h3>
+          <div class="chart-wrap"><canvas id="chart-monthly-sla" height="220"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Daily SLA % — Overall</h3>
+          <div class="chart-wrap"><canvas id="chart-daily-sla" height="220"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Daily P99 TAT (hrs) — All Segments</h3>
+          <div class="chart-wrap"><canvas id="chart-p99" height="220"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Monthly P95 TAT (hrs) — All Segments</h3>
+          <div class="chart-wrap"><canvas id="chart-p95" height="220"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-card">
+        <div class="table-header">
+          <h3>Raw Data <span id="row-count" style="font-weight:400;color:var(--text2)"></span></h3>
+          <input class="search-box" id="search" placeholder="Search period…" oninput="renderTable()"/>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Granularity</th><th>Period</th>
+                <th>Overall SLA%</th><th>P99 TAT</th><th>P95 TAT</th>
+                <th>Ent SLA%</th><th>Mid SLA%</th>
+                <th>Resellers SLA%</th><th>SMB SLA%</th>
+              </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div><!-- /dashboard -->
+  </main>
+</div><!-- /app -->
+
+<script>
+// ── State ──────────────────────────────────────────────────────────
+let SESSION_TOKEN = '';
+let MB_URL = '';
+let ALL_ROWS = [];   // [{granularity,period,sort_date,...}]
+let COLS = [];
+let GRAN = 'all';
+
+// ── Login ──────────────────────────────────────────────────────────
+async function doLogin() {
+  const btn = document.getElementById('login-btn');
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Connecting…';
+
+  MB_URL = (document.getElementById('mb-url').value || '').replace(/\/$/, '');
+  const email = document.getElementById('mb-email').value.trim();
+  const pass  = document.getElementById('mb-pass').value;
+
+  if (!MB_URL || !email || !pass) {
+    showLoginErr('Please fill in all fields.');
+    btn.disabled = false; btn.textContent = 'Connect & Load Dashboard';
+    return;
+  }
+
+  try {
+    // Step 1: get session token
+    const r = await fetch(`${MB_URL}/api/session`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({username: email, password: pass}),
+    });
+    if (!r.ok) {
+      const t = await r.text().catch(()=>'');
+      throw new Error(`Auth failed (${r.status}): ${t || r.statusText}`);
+    }
+    const json = await r.json();
+    SESSION_TOKEN = json.id || json.token || '';
+    if (!SESSION_TOKEN) throw new Error('No session token in response');
+
+    // Switch to app
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    showLoading('Fetching catalog data from Metabase…');
+
+    await fetchData();
+
+  } catch(e) {
+    showLoginErr(e.message || String(e));
+    btn.disabled = false; btn.textContent = 'Connect & Load Dashboard';
+  }
+}
+
+function showLoginErr(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function doLogout() {
+  SESSION_TOKEN = ''; ALL_ROWS = []; MB_URL = '';
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('mb-pass').value = '';
+}
+
+// ── Data Fetch ─────────────────────────────────────────────────────
+async function fetchData() {
+  showLoading('Running catalog query (this may take 30–60 s)…');
+  hideFetchError();
+
+  try {
+    const r = await fetch(`${MB_URL}/api/card/12972/query`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Metabase-Session': SESSION_TOKEN,
+      },
+      body: JSON.stringify({ignore_cache: false}),
+    });
+
+    if (r.status === 401) throw new Error('Session expired — please sign in again.');
+    if (!r.ok) {
+      const t = await r.text().catch(()=>'');
+      throw new Error(`Query failed (${r.status}): ${t || r.statusText}`);
+    }
+
+    const payload = await r.json();
+    parseAndRender(payload);
+
+  } catch(e) {
+    hideLoading();
+    showFetchError(e.message || String(e));
+  }
+}
+
+async function refreshData() {
+  if (!SESSION_TOKEN) return;
+  document.getElementById('dashboard').style.display = 'none';
+  await fetchData();
+}
+
+// ── Parse Metabase response ────────────────────────────────────────
+function parseAndRender(payload) {
+  // Metabase wraps in data.data OR data directly
+  const data = payload.data || payload;
+  COLS = (data.cols || []).map(c => c.name || c.display_name || '');
+  const rawRows = data.rows || [];
+
+  // Map to objects
+  ALL_ROWS = rawRows.map(r => {
+    const obj = {};
+    COLS.forEach((c, i) => { obj[c] = r[i]; });
+    return obj;
+  });
+
+  if (ALL_ROWS.length === 0) {
+    hideLoading();
+    showFetchError('Query returned 0 rows. The question may have changed or filters are active.');
+    return;
+  }
+
+  hideLoading();
+  document.getElementById('dashboard').style.display = 'block';
+  document.getElementById('refresh-ts').textContent =
+    'Refreshed ' + new Date().toLocaleTimeString();
+
+  renderAll();
+}
+
+// ── Render ─────────────────────────────────────────────────────────
+function visibleRows() {
+  if (GRAN === 'all') return ALL_ROWS;
+  return ALL_ROWS.filter(r => (r.granularity || '').toLowerCase() === GRAN);
+}
+
+function setGran(btn, g) {
+  GRAN = g;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAll();
+}
+
+function renderAll() {
+  const rows = visibleRows();
+  const monthly = rows.filter(r => (r.granularity||'').toLowerCase()==='month')
+                      .sort((a,b)=>String(a.sort_date||a.sort_group).localeCompare(String(b.sort_date||b.sort_group)));
+  const daily   = rows.filter(r => (r.granularity||'').toLowerCase()==='day')
+                      .sort((a,b)=>String(a.sort_date||'').localeCompare(String(b.sort_date||'')));
+
+  const latest = monthly.length ? monthly[monthly.length-1] : (daily.length ? daily[daily.length-1] : null);
+  renderKPIs(latest);
+  renderSegments(latest);
+  renderChartMonthlySLA(monthly);
+  renderChartDailySLA(daily);
+  renderChartP99(daily);
+  renderChartP95Monthly(monthly);
+  renderTable();
+}
+
+// ── Helper: colour ─────────────────────────────────────────────────
+function slaClass(v) {
+  if (v === null || v === undefined || v === '') return '';
+  const n = parseFloat(v);
+  if (n >= 95) return 'kpi-good';
+  if (n >= 85) return 'kpi-warn';
+  return 'kpi-bad';
+}
+function slaChip(v) {
+  const n = parseFloat(v);
+  const pct = isNaN(n) ? '-' : n.toFixed(1)+'%';
+  let cls = 'chip-red';
+  if (n >= 95) cls = 'chip-green';
+  else if (n >= 85) cls = 'chip-amber';
+  return `<span class="chip ${cls}">${pct}</span>`;
+}
+function fmt(v, dec=1, unit='') {
+  const n = parseFloat(v);
+  return isNaN(n) ? '-' : n.toFixed(dec)+unit;
+}
+function pct(v) { return fmt(v,1,'%'); }
+
+// ── KPI Tiles ──────────────────────────────────────────────────────
+function renderKPIs(row) {
+  const el = document.getElementById('kpi-grid');
+  if (!row) { el.innerHTML = '<p style="color:var(--text3);font-size:.85rem">No data for selected granularity</p>'; return; }
+
+  const tiles = [
+    {label:'SLA (≥95%)', val: pct(row.sla_pct), cls: slaClass(row.sla_pct), sub: 'Overall'},
+    {label:'P99 TAT', val: fmt(row.p99_tat_hrs,1,' hrs'), cls:'', sub: 'Overall turnover'},
+    {label:'P95 TAT', val: fmt(row.p95_tat_hrs,1,' hrs'), cls:'', sub: 'Overall turnover'},
+    {label:'Period', val: row.period || '-', cls:'', sub: row.granularity || ''},
+  ];
+
+  el.innerHTML = tiles.map(t => `
+    <div class="kpi">
+      <div class="kpi-label">${t.label}</div>
+      <div class="kpi-value ${t.cls}">${t.val}</div>
+      <div class="kpi-sub">${t.sub}</div>
+    </div>`).join('');
+}
+
+// ── Segment Cards ──────────────────────────────────────────────────
+const SEGMENTS = [
+  {key:'ent',       label:'Enterprise', color:'#3b82f6'},
+  {key:'mid',       label:'Mid-Market', color:'#8b5cf6'},
+  {key:'resellers', label:'Resellers',  color:'#f59e0b'},
+  {key:'smb',       label:'SMB',        color:'#10b981'},
+];
+
+function renderSegments(row) {
+  const el = document.getElementById('seg-grid');
+  if (!row) { el.innerHTML = ''; return; }
+
+  el.innerHTML = SEGMENTS.map(s => `
+    <div class="seg-card">
+      <div class="seg-title">
+        <span class="seg-dot" style="background:${s.color}"></span>${s.label}
+      </div>
+      <div class="seg-row"><span class="seg-key">SLA %</span><span class="seg-val ${slaClass(row[s.key+'_sla_pct'])}">${pct(row[s.key+'_sla_pct'])}</span></div>
+      <div class="seg-row"><span class="seg-key">P99 TAT</span><span class="seg-val">${fmt(row[s.key+'_p99_tat_hrs'],1,' hrs')}</span></div>
+      <div class="seg-row"><span class="seg-key">P95 TAT</span><span class="seg-val">${fmt(row[s.key+'_p95_tat_hrs'],1,' hrs')}</span></div>
+    </div>`).join('');
+}
+
+// ── Canvas Charts ──────────────────────────────────────────────────
+// Lightweight canvas chart renderer — no external lib needed
+function drawLineChart(canvasId, labels, series, yLabel='', targetLine=null) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.offsetWidth || 600;
+  const H = parseInt(canvas.getAttribute('height')) || 220;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W+'px';
+  canvas.style.height = H+'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const PAD = {top:20, right:20, bottom:48, left:52};
+  const cW = W - PAD.left - PAD.right;
+  const cH = H - PAD.top  - PAD.bottom;
+
+  // ── Colours from CSS vars ──────────────────────────────────────
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const textCol = isDark ? '#9ba3b8' : '#6b7280';
+  const gridCol = isDark ? '#2d3148' : '#e8ebf4';
+  const bgCol   = isDark ? '#1a1d2e' : '#ffffff';
+
+  ctx.fillStyle = bgCol;
+  ctx.fillRect(0, 0, W, H);
+
+  // Collect all values for scale
+  const allVals = series.flatMap(s => s.data.filter(v => v !== null && !isNaN(v)));
+  if (allVals.length === 0) return;
+  const minV = Math.min(...allVals);
+  const maxV = Math.max(...allVals);
+  const pad  = (maxV - minV) * 0.12 || 5;
+  const lo   = Math.max(0, minV - pad);
+  const hi   = maxV + pad;
+
+  function xOf(i)  { return PAD.left + (i / (labels.length-1||1)) * cW; }
+  function yOf(v)  { return PAD.top  + cH - ((v - lo) / (hi - lo)) * cH; }
+
+  // Grid + y-labels
+  const ticks = 5;
+  ctx.font = '10px system-ui';
+  ctx.fillStyle = textCol;
+  ctx.textAlign = 'right';
+  for (let t = 0; t <= ticks; t++) {
+    const v   = lo + (hi-lo)*(t/ticks);
+    const y   = yOf(v);
+    ctx.strokeStyle = gridCol;
+    ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left+cW, y); ctx.stroke();
+    ctx.fillStyle = textCol;
+    ctx.fillText(v.toFixed(1), PAD.left-6, y+3.5);
+  }
+
+  // Target line
+  if (targetLine !== null && targetLine >= lo && targetLine <= hi) {
+    const ty = yOf(targetLine);
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(PAD.left, ty); ctx.lineTo(PAD.left+cW, ty); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#ef4444';
+    ctx.textAlign = 'left';
+    ctx.fillText('95% target', PAD.left+4, ty-4);
+  }
+
+  // X labels (sample at most 10)
+  ctx.textAlign = 'center';
+  ctx.fillStyle = textCol;
+  const step = Math.max(1, Math.floor(labels.length/10));
+  labels.forEach((lbl, i) => {
+    if (i % step !== 0 && i !== labels.length-1) return;
+    const x = xOf(i);
+    const short = String(lbl).slice(0,8);
+    ctx.fillText(short, x, H - PAD.bottom + 16);
+  });
+
+  // Series lines
+  series.forEach(s => {
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    ctx.lineCap  = 'round';
+    ctx.beginPath();
+    let started = false;
+    s.data.forEach((v, i) => {
+      if (v === null || isNaN(v)) { started = false; return; }
+      const x = xOf(i), y = yOf(v);
+      if (!started) { ctx.moveTo(x,y); started=true; }
+      else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+
+    // Dots
+    s.data.forEach((v, i) => {
+      if (v === null || isNaN(v)) return;
+      const x = xOf(i), y = yOf(v);
+      ctx.beginPath();
+      ctx.arc(x,y,3,0,Math.PI*2);
+      ctx.fillStyle = s.color;
+      ctx.fill();
+    });
+  });
+
+  // Legend
+  const legX = PAD.left;
+  let lx = legX;
+  series.forEach(s => {
+    ctx.fillStyle = s.color;
+    ctx.fillRect(lx, H-PAD.bottom+28, 12, 2);
+    ctx.fillStyle = textCol;
+    ctx.textAlign = 'left';
+    ctx.fillText(s.label, lx+16, H-PAD.bottom+32);
+    lx += ctx.measureText(s.label).width + 32;
+  });
+}
+
+// Monthly SLA
+function renderChartMonthlySLA(monthly) {
+  if (!monthly.length) return;
+  const labels = monthly.map(r => r.period);
+  const series = [
+    {label:'Overall',   color:'#5b5ef4', data: monthly.map(r=>parseFloat(r.sla_pct))},
+    {label:'Ent',       color:'#3b82f6', data: monthly.map(r=>parseFloat(r.ent_sla_pct))},
+    {label:'Mid',       color:'#8b5cf6', data: monthly.map(r=>parseFloat(r.mid_sla_pct))},
+    {label:'Resellers', color:'#f59e0b', data: monthly.map(r=>parseFloat(r.resellers_sla_pct))},
+    {label:'SMB',       color:'#10b981', data: monthly.map(r=>parseFloat(r.smb_sla_pct))},
+  ];
+  drawLineChart('chart-monthly-sla', labels, series, 'SLA %', 95);
+}
+
+// Daily SLA overall
+function renderChartDailySLA(daily) {
+  if (!daily.length) return;
+  const labels = daily.map(r => r.sort_date || r.period);
+  const series = [
+    {label:'Overall', color:'#5b5ef4', data: daily.map(r=>parseFloat(r.sla_pct))},
+  ];
+  drawLineChart('chart-daily-sla', labels, series, 'SLA %', 95);
+}
+
+// Daily P99
+function renderChartP99(daily) {
+  if (!daily.length) return;
+  const labels = daily.map(r => r.sort_date || r.period);
+  const series = [
+    {label:'Overall',   color:'#5b5ef4', data: daily.map(r=>parseFloat(r.p99_tat_hrs))},
+    {label:'Ent',       color:'#3b82f6', data: daily.map(r=>parseFloat(r.ent_p99_tat_hrs))},
+    {label:'Mid',       color:'#8b5cf6', data: daily.map(r=>parseFloat(r.mid_p99_tat_hrs))},
+    {label:'Resellers', color:'#f59e0b', data: daily.map(r=>parseFloat(r.resellers_p99_tat_hrs))},
+    {label:'SMB',       color:'#10b981', data: daily.map(r=>parseFloat(r.smb_p99_tat_hrs))},
+  ];
+  drawLineChart('chart-p99', labels, series, 'hrs');
+}
+
+// Monthly P95
+function renderChartP95Monthly(monthly) {
+  if (!monthly.length) return;
+  const labels = monthly.map(r => r.period);
+  const series = [
+    {label:'Overall',   color:'#5b5ef4', data: monthly.map(r=>parseFloat(r.p95_tat_hrs))},
+    {label:'Ent',       color:'#3b82f6', data: monthly.map(r=>parseFloat(r.ent_p95_tat_hrs))},
+    {label:'Mid',       color:'#8b5cf6', data: monthly.map(r=>parseFloat(r.mid_p95_tat_hrs))},
+    {label:'Resellers', color:'#f59e0b', data: monthly.map(r=>parseFloat(r.resellers_p95_tat_hrs))},
+    {label:'SMB',       color:'#10b981', data: monthly.map(r=>parseFloat(r.smb_p95_tat_hrs))},
+  ];
+  drawLineChart('chart-p95', labels, series, 'hrs');
+}
+
+// ── Table ──────────────────────────────────────────────────────────
+function renderTable() {
+  const q = (document.getElementById('search').value || '').toLowerCase();
+  let rows = visibleRows();
+  if (q) rows = rows.filter(r => String(r.period||'').toLowerCase().includes(q) || String(r.granularity||'').toLowerCase().includes(q));
+  rows = [...rows].sort((a,b) => {
+    const ga = (a.granularity||'').toLowerCase();
+    const gb = (b.granularity||'').toLowerCase();
+    if (ga !== gb) return ga < gb ? -1 : 1;
+    return String(a.sort_date||'').localeCompare(String(b.sort_date||''));
+  });
+
+  document.getElementById('row-count').textContent = `(${rows.length} rows)`;
+  const tbody = document.getElementById('table-body');
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:2rem">No rows match</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map(r => {
+    const gran = (r.granularity||'').toLowerCase();
+    const granChip = gran==='month'
+      ? `<span class="chip chip-blue">Month</span>`
+      : `<span class="chip chip-purple">Day</span>`;
+    return `<tr>
+      <td>${granChip}</td>
+      <td>${r.period||'-'}</td>
+      <td>${slaChip(r.sla_pct)}</td>
+      <td>${fmt(r.p99_tat_hrs,1,' h')}</td>
+      <td>${fmt(r.p95_tat_hrs,1,' h')}</td>
+      <td>${slaChip(r.ent_sla_pct)}</td>
+      <td>${slaChip(r.mid_sla_pct)}</td>
+      <td>${slaChip(r.resellers_sla_pct)}</td>
+      <td>${slaChip(r.smb_sla_pct)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── UI helpers ─────────────────────────────────────────────────────
+function showLoading(msg) {
+  document.getElementById('loading').style.display = 'flex';
+  document.getElementById('load-status').textContent = msg || 'Loading…';
+  document.getElementById('dashboard').style.display = 'none';
+  hideFetchError();
+}
+function hideLoading() {
+  document.getElementById('loading').style.display = 'none';
+}
+function showFetchError(msg) {
+  const el = document.getElementById('fetch-error');
+  document.getElementById('fetch-error-msg').textContent = msg;
+  el.style.display = 'block';
+}
+function hideFetchError() {
+  document.getElementById('fetch-error').style.display = 'none';
+}
+
+// ── Theme toggle ───────────────────────────────────────────────────
+function toggleTheme() {
+  const html = document.documentElement;
+  html.setAttribute('data-theme', html.getAttribute('data-theme')==='dark' ? 'light' : 'dark');
+  if (ALL_ROWS.length) renderAll();
+}
+
+// ── Keyboard shortcut ──────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') {
+    doLogin();
+  }
+});
+
+// ── Resize: redraw charts ──────────────────────────────────────────
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { if (ALL_ROWS.length) renderAll(); }, 200);
+});
+</script>
+</body>
+</html>
