@@ -1,0 +1,545 @@
+<title>Catalog SLA Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
+<style>
+  :root {
+    --bg:       #05080F;
+    --surface:  #0C1220;
+    --elevated: #111B2E;
+    --border:   #1C2840;
+    --border2:  #243250;
+    --positive: #00E5A0;
+    --critical: #FF3A5C;
+    --warning:  #FFAB00;
+    --ent:      #4AADFF;
+    --mid:      #FF9B40;
+    --resellers:#A78BFA;
+    --smb:      #F472B6;
+    --overall:  #00E5A0;
+    --text:     #E2EAF8;
+    --muted:    #5A7090;
+    --subtle:   #2A3A58;
+    --card-shadow: 0 1px 3px rgba(0,0,0,.5);
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg:       #F0F3FA; --surface:#FFFFFF; --elevated:#F7F9FF;
+      --border:   #D0D9EE; --border2:#B8C5E0; --text:#111827;
+      --muted:    #6B7AA0; --subtle:#D8E2F4;
+      --card-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg:#F0F3FA; --surface:#FFFFFF; --elevated:#F7F9FF;
+    --border:#D0D9EE; --border2:#B8C5E0; --text:#111827;
+    --muted:#6B7AA0; --subtle:#D8E2F4;
+    --card-shadow:0 1px 3px rgba(0,0,0,.08);
+  }
+
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.5;min-height:100vh}
+
+  /* Header */
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .header-left{display:flex;align-items:center;gap:14px}
+  .logo-mark{width:32px;height:32px;background:var(--positive);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .logo-mark svg{width:18px;height:18px}
+  .header h1{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--text)}
+  .header h1 span{color:var(--muted);font-weight:400}
+  .header-right{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .header-meta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:.04em;display:flex;align-items:center;gap:10px}
+  .live-dot{display:inline-block;width:6px;height:6px;background:var(--positive);border-radius:50%;box-shadow:0 0 0 3px rgba(0,229,160,.15);animation:pulse 2.5s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  @media(prefers-reduced-motion:reduce){.live-dot{animation:none}}
+
+  .refresh-btn{display:flex;align-items:center;gap:6px;background:none;border:1px solid var(--border);color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 12px;border-radius:6px;cursor:pointer;transition:color .15s,border-color .15s}
+  .refresh-btn:hover{color:var(--text);border-color:var(--border2)}
+  .refresh-btn svg{width:12px;height:12px}
+  .refresh-btn.spinning svg{animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Page */
+  .page{max-width:1280px;margin:0 auto;padding:24px 28px 48px;display:flex;flex-direction:column;gap:24px}
+
+  /* State screens */
+  .state-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;min-height:320px;text-align:center}
+  .state-screen.hidden{display:none}
+  .state-icon{font-size:40px;line-height:1}
+  .state-title{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:var(--text)}
+  .state-body{font-size:13px;color:var(--muted);max-width:480px;line-height:1.7}
+  .state-body code{background:var(--elevated);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--positive)}
+  .state-body pre{background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text);text-align:left;margin-top:8px;line-height:1.8}
+
+  .spinner{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--positive);border-radius:50%;animation:spin .8s linear infinite}
+
+  /* KPI */
+  .kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  @media(max-width:800px){.kpi-strip{grid-template-columns:repeat(2,1fr)}}
+  .kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;display:flex;flex-direction:column;gap:6px;box-shadow:var(--card-shadow)}
+  .kpi-label{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .kpi-value{font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1;color:var(--text)}
+  .kpi-value.good{color:var(--positive)}
+  .kpi-value.warn{color:var(--warning)}
+  .kpi-value.crit{color:var(--critical)}
+  .kpi-sub{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .kpi-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:500;width:fit-content;margin-top:2px}
+  .kpi-badge.good{background:rgba(0,229,160,.12);color:var(--positive)}
+  .kpi-badge.crit{background:rgba(255,58,92,.12);color:var(--critical)}
+  .kpi-badge.warn{background:rgba(255,171,0,.12);color:var(--warning)}
+
+  /* Section */
+  .section-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+  .section-title{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:8px}
+  .section-title::before{content:'';display:block;width:3px;height:14px;background:var(--positive);border-radius:2px}
+
+  /* Charts */
+  .chart-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 24px;box-shadow:var(--card-shadow)}
+  .chart-wrap{position:relative;height:260px}
+  .chart-legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:12px}
+  .legend-item{display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);cursor:pointer;transition:color .15s}
+  .legend-item:hover{color:var(--text)}
+  .legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .sla-tgt-line{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--warning)}
+
+  /* Segments */
+  .segment-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  @media(max-width:800px){.segment-grid{grid-template-columns:repeat(2,1fr)}}
+  .seg-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;box-shadow:var(--card-shadow);display:flex;flex-direction:column;gap:10px}
+  .seg-name{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center;gap:7px}
+  .seg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  .seg-sla-num{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1}
+  .seg-bar-track{height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+  .seg-bar-fill{height:100%;border-radius:2px}
+  .seg-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .seg-stat{display:flex;flex-direction:column;gap:2px}
+  .seg-stat-label{font-size:9.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+  .seg-stat-val{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;font-variant-numeric:tabular-nums}
+
+  /* Table */
+  .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:var(--card-shadow)}
+  .table-scroll{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  thead th{font-size:9.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:11px 14px;text-align:right;background:var(--elevated);border-bottom:1px solid var(--border);white-space:nowrap}
+  thead th:first-child{text-align:left}
+  tbody tr{border-bottom:1px solid var(--border)}
+  tbody tr:last-child{border-bottom:none}
+  tbody tr:hover{background:var(--elevated)}
+  tbody td{padding:9px 14px;font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;text-align:right;color:var(--text);white-space:nowrap}
+  tbody td:first-child{text-align:left;font-family:'Inter',sans-serif;font-size:12px;color:var(--muted)}
+  .sla-chip{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11.5px;font-family:'IBM Plex Mono',monospace;font-weight:500}
+  .sla-good{background:rgba(0,229,160,.1);color:var(--positive)}
+  .sla-warn{background:rgba(255,171,0,.1);color:var(--warning)}
+  .sla-crit{background:rgba(255,58,92,.1);color:var(--critical)}
+  .table-footer{padding:10px 14px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);background:var(--elevated);display:flex;align-items:center;justify-content:space-between}
+  .show-more-btn{background:none;border:1px solid var(--border);color:var(--muted);font-size:11px;font-family:'IBM Plex Mono',monospace;padding:4px 12px;border-radius:5px;cursor:pointer}
+  .show-more-btn:hover{color:var(--text);border-color:var(--border2)}
+</style>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-left">
+    <div class="logo-mark">
+      <svg viewBox="0 0 18 18" fill="none"><path d="M3 14L9 4L15 14" stroke="#05080F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 10.5H12.5" stroke="#05080F" stroke-width="1.5" stroke-linecap="round"/></svg>
+    </div>
+    <div>
+      <h1>Catalog SLA Monitor <span>/ Management View</span></h1>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="header-meta">
+      <span class="live-dot"></span>
+      <span id="date-range">—</span>
+      <span>·</span>
+      <span>Prod ClickHouse · Card #12972</span>
+      <span>·</span>
+      <span id="last-updated">Loading…</span>
+    </div>
+    <button class="refresh-btn" id="refresh-btn" onclick="loadData(true)">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.5 2A5 5 0 1 0 11 6.5"/>
+        <path d="M10.5 2V5H7.5"/>
+      </svg>
+      Refresh
+    </button>
+  </div>
+</header>
+
+<div class="page">
+
+  <!-- Loading state -->
+  <div class="state-screen" id="state-loading">
+    <div class="spinner"></div>
+    <div class="state-title">Fetching live data…</div>
+    <div class="state-body">Connecting to <code>localhost:8765</code></div>
+  </div>
+
+  <!-- Error state -->
+  <div class="state-screen hidden" id="state-error">
+    <div class="state-icon">⚡</div>
+    <div class="state-title">Proxy not reachable</div>
+    <div class="state-body">
+      The dashboard needs the local proxy running to pull live data from Metabase.<br><br>
+      Open a terminal and run:
+      <pre>python metabase_proxy.py</pre>
+      Keep that terminal open, then <a href="#" onclick="loadData(true);return false;" style="color:var(--positive)">click here to retry</a>.
+    </div>
+  </div>
+
+  <!-- Dashboard (hidden until data loads) -->
+  <div id="dashboard" style="display:none;flex-direction:column;gap:24px">
+
+    <!-- KPI Strip -->
+    <div class="kpi-strip" id="kpi-strip"></div>
+
+    <!-- SLA Trend -->
+    <div class="chart-panel">
+      <div class="section-header">
+        <div class="section-title">SLA % — Daily Trend by Segment</div>
+        <div class="sla-tgt-line">⬤ 95% SLA target</div>
+      </div>
+      <div class="chart-wrap"><canvas id="slaChart"></canvas></div>
+      <div class="chart-legend" id="sla-legend"></div>
+    </div>
+
+    <!-- TAT Trend -->
+    <div class="chart-panel">
+      <div class="section-header">
+        <div class="section-title">P99 TAT — Overall (hrs, anomalies excluded &gt;100h)</div>
+      </div>
+      <div class="chart-wrap" style="height:180px"><canvas id="tatChart"></canvas></div>
+    </div>
+
+    <!-- Segments -->
+    <div>
+      <div class="section-header"><div class="section-title">Segment Performance — Period Average</div></div>
+      <div class="segment-grid" id="seg-grid"></div>
+    </div>
+
+    <!-- Table -->
+    <div>
+      <div class="section-header"><div class="section-title">Daily Detail Table</div></div>
+      <div class="table-wrap">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Overall SLA%</th>
+                <th>P99 TAT</th>
+                <th>P95 TAT</th>
+                <th>ENT SLA%</th>
+                <th>ENT P99</th>
+                <th>MID SLA%</th>
+                <th>MID P99</th>
+                <th>Resellers SLA%</th>
+                <th>Resellers P99</th>
+                <th>SMB SLA%</th>
+                <th>SMB P99</th>
+              </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+        <div class="table-footer">
+          <span id="table-count"></span>
+          <button class="show-more-btn" id="show-more-btn">Show all rows</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /dashboard -->
+</div>
+
+<script>
+const PROXY = 'http://localhost:8765';
+const SHOW_INIT = 20;
+let showAll = false;
+let slaChartInst = null;
+let tatChartInst = null;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const avg  = arr => { const v=arr.filter(x=>x!=null&&!isNaN(x)); return v.length?v.reduce((a,b)=>a+b,0)/v.length:null; };
+const fmt  = (v,d=2) => v==null||isNaN(v)?'—':Number(v).toFixed(d);
+const slaC = v => v==null?'':(v>=97?'good':v>=90?'warn':'crit');
+const chip = v => v==null?'':('sla-'+slaC(v));
+
+// Map raw Metabase row → normalised object
+function normalise(r) {
+  return {
+    d:      r.sort_date || r.period || '',
+    sla:    parseF(r.sla_pct),
+    p99:    parseF(r.p99_tat_hrs),
+    p95:    parseF(r.p95_tat_hrs),
+    ent:    parseF(r.ent_sla_pct),
+    ent99:  parseF(r.ent_p99_tat_hrs),
+    mid:    parseF(r.mid_sla_pct),
+    mid99:  parseF(r.mid_p99_tat_hrs),
+    res:    parseF(r.resellers_sla_pct),
+    res99:  parseF(r.resellers_p99_tat_hrs),
+    smb:    parseF(r.smb_sla_pct),
+    smb99:  parseF(r.smb_p99_tat_hrs),
+  };
+}
+function parseF(v) { const n=parseFloat(v); return isNaN(n)?null:n; }
+
+// ── State Management ──────────────────────────────────────────────────────────
+function show(id) {
+  ['state-loading','state-error','dashboard'].forEach(s=>{
+    const el=document.getElementById(s);
+    if(s==='dashboard'){el.style.display=id==='dashboard'?'flex':'none';}
+    else{el.classList.toggle('hidden',s!==id);}
+  });
+}
+
+// ── Data Load ─────────────────────────────────────────────────────────────────
+async function loadData(force=false) {
+  const btn=document.getElementById('refresh-btn');
+  btn.classList.add('spinning');
+  if(force||document.getElementById('dashboard').style.display==='none'){
+    show('state-loading');
+  }
+  try {
+    const url = force ? `${PROXY}/data?t=${Date.now()}` : `${PROXY}/data`;
+    const resp = await fetch(url, {cache:'no-store'});
+    if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const json = await resp.json();
+    if(!json.ok) throw new Error(json.error||'Unknown error');
+
+    // Filter only daily rows (granularity === 'day') if the column exists
+    let rows = (json.rows||[]).filter(r=>!r.granularity||r.granularity==='day');
+
+    // Sort by date ascending
+    rows.sort((a,b)=>(a.sort_date||'').localeCompare(b.sort_date||''));
+
+    const DATA = rows.map(normalise).filter(r=>r.d);
+
+    // Update header meta
+    if(DATA.length){
+      document.getElementById('date-range').textContent =
+        `${DATA[0].d} – ${DATA[DATA.length-1].d}`;
+    }
+    document.getElementById('last-updated').textContent =
+      `Updated ${new Date(json.fetched_at).toLocaleTimeString()}`;
+
+    render(DATA);
+    show('dashboard');
+
+  } catch(e) {
+    console.error(e);
+    // If dashboard was already visible keep it; otherwise show error
+    if(document.getElementById('dashboard').style.display==='none'){
+      show('state-error');
+    } else {
+      document.getElementById('last-updated').textContent = '⚠ Refresh failed';
+    }
+  } finally {
+    btn.classList.remove('spinning');
+  }
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render(DATA) {
+  renderKPIs(DATA);
+  renderSLAChart(DATA);
+  renderTATChart(DATA);
+  renderSegments(DATA);
+  renderTable(DATA);
+}
+
+function renderKPIs(DATA) {
+  const avgSla   = avg(DATA.map(r=>r.sla));
+  const minSla   = Math.min(...DATA.map(r=>r.sla).filter(x=>x!=null));
+  const minDay   = (DATA.find(r=>r.sla===minSla)||{}).d||'';
+  const avgP99   = avg(DATA.filter(r=>r.p99!=null&&r.p99<100).map(r=>r.p99));
+  const avgP95   = avg(DATA.filter(r=>r.p95!=null&&r.p95<100).map(r=>r.p95));
+  const critDays = DATA.filter(r=>r.sla!=null&&r.sla<95).length;
+
+  document.getElementById('kpi-strip').innerHTML = [
+    {label:'Avg Overall SLA',  value:fmt(avgSla,2)+'%', cls:slaC(avgSla), sub:`${DATA.length} daily periods`, badge:null},
+    {label:'Lowest SLA Day',   value:fmt(minSla,2)+'%', cls:slaC(minSla), sub:`on ${minDay.slice(5)}`, badge:{cls:'crit',txt:`${critDays} days below 95%`}},
+    {label:'Avg P99 TAT',      value:fmt(avgP99,1)+'h', cls:'', sub:'Normal days only (<100h)', badge:null},
+    {label:'Avg P95 TAT',      value:fmt(avgP95,1)+'h', cls:'', sub:'Normal days only (<100h)', badge:null},
+  ].map(k=>`
+    <div class="kpi-card">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value ${k.cls}">${k.value}</div>
+      <div class="kpi-sub">${k.sub}</div>
+      ${k.badge?`<div class="kpi-badge ${k.badge.cls}">${k.badge.txt}</div>`:''}
+    </div>
+  `).join('');
+}
+
+const SEGMENTS = [
+  {key:'sla', label:'Overall',    color:'#00E5A0'},
+  {key:'ent', label:'Enterprise', color:'#4AADFF'},
+  {key:'mid', label:'Mid-Market', color:'#FF9B40'},
+  {key:'res', label:'Resellers',  color:'#A78BFA'},
+  {key:'smb', label:'SMB',        color:'#F472B6'},
+];
+
+function renderSLAChart(DATA) {
+  const labels = DATA.map(r=>r.d.slice(5));
+  if(slaChartInst){slaChartInst.destroy();slaChartInst=null;}
+
+  // Register target-line plugin once
+  if(!Chart.registry.plugins.get('slaTarget')){
+    Chart.register({
+      id:'slaTarget',
+      afterDraw(chart){
+        if(chart.canvas.id!=='slaChart') return;
+        const {ctx,chartArea:{left,right},scales:{y}}=chart;
+        const yPos=y.getPixelForValue(95);
+        ctx.save(); ctx.setLineDash([4,4]);
+        ctx.strokeStyle='#FFAB00'; ctx.lineWidth=1; ctx.globalAlpha=.6;
+        ctx.beginPath(); ctx.moveTo(left,yPos); ctx.lineTo(right,yPos); ctx.stroke();
+        ctx.restore();
+      }
+    });
+  }
+
+  slaChartInst = new Chart(document.getElementById('slaChart').getContext('2d'),{
+    type:'line',
+    data:{
+      labels,
+      datasets: SEGMENTS.map(s=>({
+        label:s.label,
+        data: DATA.map(r=>r[s.key]),
+        borderColor:s.color,
+        backgroundColor:'transparent',
+        borderWidth:s.key==='sla'?2:1.5,
+        pointRadius:0, pointHoverRadius:4,
+        pointHoverBackgroundColor:s.color,
+        tension:.2, spanGaps:true,
+      }))
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#111B2E',borderColor:'#1C2840',borderWidth:1,
+          titleFont:{family:"'IBM Plex Mono',monospace",size:10},
+          bodyFont:{family:"'IBM Plex Mono',monospace",size:10},
+          callbacks:{label:c=>`${c.dataset.label}: ${c.raw!=null?c.raw.toFixed(2)+'%':'—'}`}
+        }
+      },
+      scales:{
+        x:{grid:{color:'rgba(28,40,64,.6)'},ticks:{maxTicksLimit:10,maxRotation:0},border:{display:false}},
+        y:{min:30,max:100,grid:{color:'rgba(28,40,64,.8)'},ticks:{callback:v=>v+'%',stepSize:10},border:{display:false}}
+      }
+    }
+  });
+
+  document.getElementById('sla-legend').innerHTML = SEGMENTS.map((s,i)=>`
+    <div class="legend-item" data-i="${i}">
+      <div class="legend-dot" style="background:${s.color}"></div>${s.label}
+    </div>`).join('');
+  document.querySelectorAll('.legend-item').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const i=+el.dataset.i, ds=slaChartInst.data.datasets[i];
+      ds.hidden=!ds.hidden; el.style.opacity=ds.hidden?.35:1; slaChartInst.update();
+    });
+  });
+}
+
+function renderTATChart(DATA) {
+  if(tatChartInst){tatChartInst.destroy();tatChartInst=null;}
+  const labels = DATA.map(r=>r.d.slice(5));
+  tatChartInst = new Chart(document.getElementById('tatChart').getContext('2d'),{
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        {label:'P99 TAT',data:DATA.map(r=>r.p99!=null&&r.p99<100?r.p99:null),borderColor:'#00E5A0',backgroundColor:'rgba(0,229,160,.06)',fill:true,borderWidth:1.5,pointRadius:0,tension:.3,spanGaps:false},
+        {label:'P95 TAT',data:DATA.map(r=>r.p95!=null&&r.p95<100?r.p95:null),borderColor:'#4AADFF',backgroundColor:'transparent',borderWidth:1,pointRadius:0,tension:.3,spanGaps:false},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#111B2E',borderColor:'#1C2840',borderWidth:1,
+          titleFont:{family:"'IBM Plex Mono',monospace",size:10},
+          bodyFont:{family:"'IBM Plex Mono',monospace",size:10},
+          callbacks:{label:c=>`${c.dataset.label}: ${c.raw!=null?c.raw.toFixed(2)+'h':'spike/gap'}`}
+        }
+      },
+      scales:{
+        x:{grid:{color:'rgba(28,40,64,.6)'},ticks:{maxTicksLimit:10,maxRotation:0},border:{display:false}},
+        y:{min:0,grid:{color:'rgba(28,40,64,.8)'},ticks:{callback:v=>v+'h'},border:{display:false}}
+      }
+    }
+  });
+}
+
+function renderSegments(DATA) {
+  const segDefs=[
+    {key:'ent',key99:'ent99',label:'Enterprise', color:'#4AADFF'},
+    {key:'mid',key99:'mid99',label:'Mid-Market', color:'#FF9B40'},
+    {key:'res',key99:'res99',label:'Resellers',  color:'#A78BFA'},
+    {key:'smb',key99:'smb99',label:'SMB',        color:'#F472B6'},
+  ];
+  document.getElementById('seg-grid').innerHTML = segDefs.map(s=>{
+    const vals=DATA.map(r=>r[s.key]).filter(x=>x!=null);
+    const avgV=avg(vals);
+    const minV=vals.length?Math.min(...vals):null;
+    const daysB=vals.filter(x=>x<95).length;
+    const avgP99=avg(DATA.map(r=>r[s.key99]).filter(x=>x!=null&&x<100));
+    const cls=slaC(avgV);
+    const fc=cls==='good'?'#00E5A0':cls==='warn'?'#FFAB00':'#FF3A5C';
+    const pct=Math.min(100,Math.max(0,avgV||0));
+    return `
+    <div class="seg-card">
+      <div class="seg-name" style="color:${s.color}"><div class="seg-dot" style="background:${s.color}"></div>${s.label}</div>
+      <div>
+        <div class="seg-sla-num" style="color:${fc}">${fmt(avgV,2)}%</div>
+        <div style="font-family:'IBM Plex Mono';font-size:10px;color:var(--muted);margin-top:3px">avg SLA</div>
+      </div>
+      <div class="seg-bar-track"><div class="seg-bar-fill" style="width:${pct}%;background:${fc}"></div></div>
+      <div class="seg-stats">
+        <div class="seg-stat"><div class="seg-stat-label">Min Day</div><div class="seg-stat-val" style="color:var(--critical)">${fmt(minV,2)}%</div></div>
+        <div class="seg-stat"><div class="seg-stat-label">Below 95%</div><div class="seg-stat-val" style="color:${daysB>3?'var(--critical)':'var(--warning)'}">${daysB}d</div></div>
+        <div class="seg-stat"><div class="seg-stat-label">Avg P99</div><div class="seg-stat-val">${fmt(avgP99,1)}h</div></div>
+        <div class="seg-stat"><div class="seg-stat-label">Days</div><div class="seg-stat-val">${vals.length}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderTable(DATA) {
+  const rows = showAll ? DATA : DATA.slice(0,SHOW_INIT);
+  document.getElementById('table-body').innerHTML = rows.map(r=>{
+    const p99disp = r.p99!=null&&r.p99>=100
+      ? `<span style="color:var(--critical)">${fmt(r.p99,1)}h ⚠</span>`
+      : fmt(r.p99,2)+'h';
+    return `<tr>
+      <td>${r.d}</td>
+      <td><span class="sla-chip ${chip(r.sla)}">${fmt(r.sla,2)}%</span></td>
+      <td>${p99disp}</td>
+      <td>${fmt(r.p95,2)}h</td>
+      <td><span class="sla-chip ${chip(r.ent)}">${fmt(r.ent,2)}%</span></td>
+      <td>${fmt(r.ent99,1)}h</td>
+      <td><span class="sla-chip ${chip(r.mid)}">${fmt(r.mid,2)}%</span></td>
+      <td>${fmt(r.mid99,1)}h</td>
+      <td><span class="sla-chip ${chip(r.res)}">${fmt(r.res,2)}%</span></td>
+      <td>${fmt(r.res99,1)}h</td>
+      <td><span class="sla-chip ${chip(r.smb)}">${fmt(r.smb,2)}%</span></td>
+      <td>${fmt(r.smb99,1)}h</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('table-count').textContent=`Showing ${rows.length} of ${DATA.length} rows`;
+  const btn=document.getElementById('show-more-btn');
+  btn.textContent=showAll?'Collapse':`Show all ${DATA.length} rows`;
+  btn.onclick=()=>{showAll=!showAll;renderTable(DATA);};
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+loadData();
+// Auto-refresh every 10 minutes
+setInterval(()=>loadData(true), 10*60*1000);
+</script>
