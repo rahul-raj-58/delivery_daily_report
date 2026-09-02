@@ -92,29 +92,6 @@ svg { display:block }
 }
 
 /* CORS help box */
-/* file:// banner — shown immediately if not served via HTTP */
-.file-warn {
-  display:none; margin-bottom:1.25rem; padding:1rem 1.1rem; border-radius:var(--r2);
-  background:#fef9c3; border:1.5px solid #fbbf24;
-}
-.file-warn h4 { font-size:.85rem; font-weight:700; margin-bottom:.35rem; color:#78350f }
-.file-warn p  { font-size:.78rem; color:#78350f; line-height:1.6 }
-.file-warn code {
-  display:block; margin:.45rem 0 .2rem; padding:.45rem .75rem; background:#fef3c7;
-  border-radius:4px; font-size:.8rem; font-family:ui-monospace,monospace; color:#92400e;
-  word-break:break-all;
-}
-.cors-help {
-  display:none; margin-top:.875rem; padding:.875rem; border-radius:var(--r2);
-  background:#fffbeb; border:1px solid #fcd34d;
-}
-.cors-help h4 { font-size:.825rem; font-weight:700; margin-bottom:.4rem; color:#92400e }
-.cors-help p  { font-size:.78rem; color:#78350f; line-height:1.6 }
-.cors-help code {
-  display:block; margin-top:.5rem; padding:.45rem .7rem; background:#fef3c7;
-  border-radius:4px; font-size:.8rem; font-family:ui-monospace,monospace; color:#92400e;
-  word-break:break-all;
-}
 
 /* ══════════════════════════════════════════════════
    APP SHELL
@@ -261,14 +238,6 @@ tr:hover td { background:var(--surface2) }
 <!-- ══════════ LOGIN ══════════ -->
 <div id="screen-login">
   <div class="login-wrap">
-    <!-- shown if opened as file:// -->
-    <div class="file-warn" id="file-warn">
-      <h4>⚠ Open via a local server, not file://</h4>
-      <p>Your browser blocks cross-origin requests from <strong>file://</strong> pages. Run this one-time command in Terminal from the folder where this file is saved:</p>
-      <code>python3 -m http.server 8080</code>
-      <p>Then open <strong>http://localhost:8080/catalog-dashboard.html</strong> in your browser.</p>
-    </div>
-
     <div class="login-card">
       <div class="login-brand">
         <div class="login-icon">📊</div>
@@ -291,13 +260,6 @@ tr:hover td { background:var(--surface2) }
       <button class="btn-login" id="btn-login" onclick="doLogin()">Connect &amp; Load Dashboard</button>
 
       <div id="login-err"></div>
-
-      <div class="cors-help" id="cors-help">
-        <h4>⚠ Browser blocked the request (CORS)</h4>
-        <p>Browsers block <code>file://</code> pages from calling external APIs. Fix it in one step — open Terminal and run:</p>
-        <code>cd "$(dirname "$0")" &amp;&amp; python3 -m http.server 8080</code>
-        <p style="margin-top:.5rem">Then open <strong>http://localhost:8080/catalog-dashboard.html</strong> in your browser and try again.</p>
-      </div>
     </div>
   </div>
 </div>
@@ -390,9 +352,9 @@ tr:hover td { background:var(--surface2) }
 </div>
 
 <script>
-// ── Config (hardcoded — no input needed) ──────────────────────
-const MB   = 'https://metabase.spyne.ai';
-const CARD = 12972;
+// ── Config — uses the catalog-api proxy on the same origin ────
+// All API calls go to /v1/mb/* (relative), so no CORS issues.
+const API = '';
 
 // ── State ─────────────────────────────────────────────────────
 let TOKEN = '';
@@ -419,11 +381,9 @@ const SEGS = [
 
 // ── Auth ──────────────────────────────────────────────────────
 async function doLogin() {
-  const btn = document.getElementById('btn-login');
+  const btn   = document.getElementById('btn-login');
   const errEl = document.getElementById('login-err');
-  const corsEl = document.getElementById('cors-help');
   errEl.style.display = 'none';
-  corsEl.style.display = 'none';
   btn.disabled = true;
   btn.textContent = 'Connecting…';
 
@@ -435,7 +395,7 @@ async function doLogin() {
   }
 
   try {
-    const r = await fetch(`${MB}/api/session`, {
+    const r = await fetch(`${API}/v1/mb/session`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: email, password: pass }),
@@ -447,25 +407,19 @@ async function doLogin() {
         const j = await r.json();
         msg = j.errors?.password || j.errors?.username || j.message || j.error || msg;
       } catch(_) {}
-      throw Object.assign(new Error(msg), { isCors: false });
+      throw new Error(msg);
     }
 
     const j = await r.json();
     TOKEN = j.id || j.token || '';
-    if (!TOKEN) throw new Error('No session token in Metabase response.');
+    if (!TOKEN) throw new Error('No session token returned.');
 
-    // Switch to app
     document.getElementById('screen-login').style.display = 'none';
     document.getElementById('screen-app').style.display  = 'flex';
     await fetchData();
 
   } catch(e) {
-    if (isCorsError(e)) {
-      showLoginErr('Browser blocked the request — see the yellow box below.');
-      corsEl.style.display = 'block';
-    } else {
-      showLoginErr(e.message || String(e));
-    }
+    showLoginErr(e.message || String(e));
     reset();
   }
 
@@ -473,11 +427,6 @@ async function doLogin() {
     btn.disabled = false;
     btn.textContent = 'Connect & Load Dashboard';
   }
-}
-
-function isCorsError(e) {
-  // Chrome: "Failed to fetch"  |  Safari: "Load failed"  |  Firefox: "NetworkError"
-  return e instanceof TypeError && /fetch|network|load failed/i.test(e.message);
 }
 
 function showLoginErr(msg) {
@@ -499,13 +448,12 @@ async function fetchData() {
   showLoading('Running catalog query — this may take 30–60 s…');
 
   try {
-    const r = await fetch(`${MB}/api/card/${CARD}/query`, {
+    const r = await fetch(`${API}/v1/mb/query`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-Metabase-Session': TOKEN,
       },
-      body: JSON.stringify({ ignore_cache: false }),
     });
 
     if (r.status === 401) throw new Error('Session expired. Please sign in again.');
@@ -857,14 +805,6 @@ function hideLoading() {
 function showDataErr(msg) {
   document.getElementById('err-msg').textContent = msg;
   document.getElementById('state-error').style.display = 'block';
-}
-
-// ── Detect file:// and warn immediately ───────────────────────
-if (location.protocol === 'file:') {
-  document.getElementById('file-warn').style.display = 'block';
-  // also disable the button so user can't accidentally try anyway
-  document.getElementById('btn-login').disabled = true;
-  document.getElementById('btn-login').textContent = 'Serve via HTTP first (see above)';
 }
 
 // ── Keyboard: Enter to login ──────────────────────────────────
