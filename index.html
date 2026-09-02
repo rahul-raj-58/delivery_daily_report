@@ -7,27 +7,24 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 
 <!-- ════════════════════════════════════════════════════════════
-     ✏️  PASTE YOUR CREDENTIALS HERE — then save and open the file
+     ✏️  PASTE YOUR METABASE CREDENTIALS HERE — save & restart server
      ════════════════════════════════════════════════════════════ -->
 <script>
-  const MB_EMAIL    = 'rahul.raj@spyne.ai';  // ← replace
-  const MB_PASSWORD = 'Sonal*123@';         // ← replace
-  // ─────────────────────────────────────────────────────────────
-  const MB_URL  = 'https://metabase.spyne.ai';
-  const CARD_ID = 12972;
+  const MB_EMAIL    = 'rahul.raj@spyne.ai';   // ← your Metabase email
+  const MB_PASSWORD = 'Sonal*123@';            // ← your Metabase password
 </script>
 <!-- ══════════════════════════════════════════════════════════ -->
 
 <style>
 :root {
-  --bg: #f0f4f8; --surface: #fff; --surface2: #f7f9fc;
-  --border: #e2e8f0; --text-p: #1a202c; --text-s: #4a5568; --text-m: #718096;
-  --accent: #4361ee; --accent-h: #3451d1;
-  --c0: #4361ee; --c1: #f7b731; --c2: #26de81; --c3: #fd9644; --c4: #fc5c65;
-  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.04);
-  --radius: 12px; --radius-sm: 8px;
+  --bg:#f0f4f8;--surface:#fff;--surface2:#f7f9fc;
+  --border:#e2e8f0;--text-p:#1a202c;--text-s:#4a5568;--text-m:#718096;
+  --accent:#4361ee;--accent-h:#3451d1;
+  --c0:#4361ee;--c1:#f7b731;--c2:#26de81;--c3:#fd9644;--c4:#fc5c65;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.04);
+  --radius:12px;--radius-sm:8px;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#0d1117;--surface:#161b22;--surface2:#1c2128;
   --border:#30363d;--text-p:#e6edf3;--text-s:#8b949e;--text-m:#6e7681;
   --shadow:0 1px 3px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.3);
@@ -41,27 +38,29 @@
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   background:var(--bg);color:var(--text-p);min-height:100vh;line-height:1.5;}
 
-/* ── Full-screen overlay ── */
+/* ── Splash ── */
 #splash{position:fixed;inset:0;background:var(--bg);z-index:200;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;}
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
 .splash-icon{width:56px;height:56px;background:var(--accent);border-radius:14px;
   display:flex;align-items:center;justify-content:center;}
 .splash-icon svg{fill:#fff;}
 #splash h1{font-size:1.3rem;font-weight:700;}
-#splash p{color:var(--text-s);font-size:.9rem;}
-.spinner{width:36px;height:36px;border:3px solid var(--border);
+#splash-msg{color:var(--text-s);font-size:.9rem;}
+.spinner{width:34px;height:34px;border:3px solid var(--border);
   border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
-#splash-err{color:#fc5c65;font-size:.88rem;max-width:340px;text-align:center;display:none;}
+#splash-err{color:#fc5c65;font-size:.85rem;max-width:380px;text-align:center;
+  background:#fef2f2;border:1px solid #fecaca;padding:12px 16px;border-radius:8px;display:none;}
+#splash-err code{background:#fee2e2;padding:2px 5px;border-radius:4px;font-size:.82rem;}
 
 /* ── Header ── */
 header{background:var(--surface);border-bottom:1px solid var(--border);
   padding:14px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
 .logo-icon{width:34px;height:34px;background:var(--accent);border-radius:8px;
-  display:flex;align-items:center;justify-content:center;}
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .logo-icon svg{fill:#fff;}
-header h1{font-size:1.05rem;font-weight:700;}
-header .sub{font-size:.78rem;color:var(--text-m);}
+.logo-text h1{font-size:1.05rem;font-weight:700;}
+.logo-text .sub{font-size:.75rem;color:var(--text-m);}
 .hdr-right{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 .pill-group{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
 .pill-group button{padding:6px 15px;background:transparent;border:none;cursor:pointer;
@@ -72,37 +71,39 @@ header .sub{font-size:.78rem;color:var(--text-m);}
   display:flex;align-items:center;gap:5px;transition:background .15s;}
 .btn-sm:hover{background:var(--border);}
 #ts{font-size:.75rem;color:var(--text-m);}
+.user-pill{font-size:.78rem;color:var(--text-m);background:var(--surface2);
+  border:1px solid var(--border);padding:5px 10px;border-radius:20px;}
 
 /* ── Main ── */
 main{padding:22px;max-width:1400px;margin:0 auto;}
 #err-bar{background:#fef2f2;border:1px solid #fecaca;color:#dc2626;
   padding:11px 18px;border-radius:8px;margin-bottom:14px;display:none;font-size:.87rem;}
-.sec-label{font-size:.75rem;font-weight:600;text-transform:uppercase;
-  letter-spacing:.06em;color:var(--text-m);margin-bottom:10px;}
+.sec-label{font-size:.73rem;font-weight:600;text-transform:uppercase;
+  letter-spacing:.07em;color:var(--text-m);margin-bottom:10px;}
 
 /* ── KPIs ── */
 .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px;margin-bottom:22px;}
 .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
   padding:18px;position:relative;overflow:hidden;box-shadow:var(--shadow);}
 .kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--seg);}
-.kpi-lbl{font-size:.73rem;font-weight:600;color:var(--text-m);text-transform:uppercase;
-  letter-spacing:.05em;margin-bottom:6px;}
-.kpi-val{font-size:1.9rem;font-weight:700;line-height:1;color:var(--seg);margin-bottom:3px;}
-.kpi-sub{font-size:.73rem;color:var(--text-m);}
+.kpi-lbl{font-size:.72rem;font-weight:600;color:var(--text-m);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.kpi-val{font-size:1.95rem;font-weight:700;line-height:1;margin-bottom:3px;}
+.kpi-sub{font-size:.72rem;color:var(--text-m);}
 .kpi-meta{margin-top:8px;display:flex;gap:14px;}
-.kpi-meta div{display:flex;flex-direction:column;gap:1px;}
-.kpi-meta .mk{font-size:.68rem;color:var(--text-m);}
-.kpi-meta .mv{font-size:.85rem;font-weight:600;color:var(--text-s);}
+.kpi-meta>div{display:flex;flex-direction:column;gap:1px;}
+.mk{font-size:.67rem;color:var(--text-m);}
+.mv{font-size:.85rem;font-weight:600;color:var(--text-s);}
+.sg{color:#16a34a;font-weight:600;}.so{color:#f59e0b;font-weight:600;}.sb{color:#ef4444;font-weight:600;}
 
 /* ── Charts ── */
 .charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:14px;margin-bottom:22px;}
 .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
   padding:18px;box-shadow:var(--shadow);}
 .chart-card h2{font-size:.88rem;font-weight:600;margin-bottom:2px;}
-.chart-card .csub{font-size:.75rem;color:var(--text-m);margin-bottom:14px;}
+.csub{font-size:.73rem;color:var(--text-m);margin-bottom:14px;}
 .chart-wrap{position:relative;height:230px;}
 .legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;}
-.li{display:flex;align-items:center;gap:5px;font-size:.77rem;color:var(--text-s);}
+.li{display:flex;align-items:center;gap:5px;font-size:.76rem;color:var(--text-s);}
 .ld{width:9px;height:9px;border-radius:50%;}
 
 /* ── Table ── */
@@ -117,26 +118,23 @@ main{padding:22px;max-width:1400px;margin:0 auto;}
 .tbl-wrap{overflow-x:auto;}
 table{width:100%;border-collapse:collapse;font-size:.81rem;}
 thead th{background:var(--surface2);padding:9px 13px;text-align:left;font-weight:600;
-  color:var(--text-s);border-bottom:1px solid var(--border);white-space:nowrap;
-  cursor:pointer;user-select:none;}
+  color:var(--text-s);border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;}
 thead th:hover{color:var(--accent);}
-.si{opacity:.35;margin-left:3px;}
-.sorted .si{opacity:1;color:var(--accent);}
+.si{opacity:.35;margin-left:3px;}.sorted .si{opacity:1;color:var(--accent);}
 tbody tr{border-bottom:1px solid var(--border);transition:background .12s;}
 tbody tr:last-child{border-bottom:none;}
 tbody tr:hover{background:var(--surface2);}
 td{padding:8px 13px;color:var(--text-s);white-space:nowrap;}
 .pc{color:var(--text-p);font-weight:500;}
 .badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:.72rem;font-weight:500;}
-.bm{background:#eef2ff;color:#4361ee;} .bd{background:#f0fdf4;color:#16a34a;}
-.sg{color:#16a34a;font-weight:600;} .so{color:#f59e0b;font-weight:600;} .sb{color:#ef4444;font-weight:600;}
+.bm{background:#eef2ff;color:#4361ee;}.bd{background:#f0fdf4;color:#16a34a;}
 
 @media(max-width:640px){.charts-grid{grid-template-columns:1fr;}.kpi-row{grid-template-columns:repeat(2,1fr);}}
 </style>
 </head>
 <body>
 
-<!-- Splash / loading screen -->
+<!-- Splash -->
 <div id="splash">
   <div class="splash-icon">
     <svg width="26" height="26" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
@@ -152,9 +150,9 @@ td{padding:8px 13px;color:var(--text-s);white-space:nowrap;}
   <div class="logo-icon">
     <svg width="18" height="18" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
   </div>
-  <div>
+  <div class="logo-text">
     <h1>Management Catalog Data</h1>
-    <div class="sub">SLA % &amp; TAT Performance · Metabase Q12972</div>
+    <div class="sub">SLA % &amp; TAT Performance · Q12972</div>
   </div>
   <div class="hdr-right">
     <div class="pill-group" id="gran-toggle">
@@ -165,6 +163,7 @@ td{padding:8px 13px;color:var(--text-s);white-space:nowrap;}
       <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 8 8h-2a6 6 0 1 1-1.76-4.24L13 11h7V4l-2.35 2.35z"/></svg>
       Refresh
     </button>
+    <span class="user-pill" id="user-pill"></span>
     <div id="ts"></div>
   </div>
 </header>
@@ -212,7 +211,10 @@ td{padding:8px 13px;color:var(--text-s);white-space:nowrap;}
 </main>
 
 <script>
-/* ── Segment definitions ── */
+/* ── Config — proxy routes, no CORS ── */
+const API_SESSION = '/v1/mb/session';
+const API_QUERY   = '/v1/mb/query';
+
 const SEGS = [
   {key:'overall',   label:'Overall',    color:'#4361ee', sla:'sla_pct',           p99:'p99_tat_hrs',           p95:'p95_tat_hrs'          },
   {key:'ent',       label:'Enterprise', color:'#f7b731', sla:'ent_sla_pct',        p99:'ent_p99_tat_hrs',        p95:'ent_p95_tat_hrs'       },
@@ -221,85 +223,96 @@ const SEGS = [
   {key:'smb',       label:'SMB',        color:'#fc5c65', sla:'smb_sla_pct',        p99:'smb_p99_tat_hrs',        p95:'smb_p95_tat_hrs'       },
 ];
 
-let allRows = [], gran = 'month', charts = {}, sortCol = 'sort_date', sortDir = 1;
+let allRows=[], gran='month', charts={}, sortCol='sort_date', sortDir=1, mbToken='';
 const $=id=>document.getElementById(id);
-const fp=(v,d=2)=>v==null?'—':Number(v).toFixed(d)+'%';
-const fh=(v,d=2)=>v==null?'—':Number(v).toFixed(d)+'h';
+const fp=v=>v==null?'—':Number(v).toFixed(2)+'%';
+const fh=v=>v==null?'—':Number(v).toFixed(2)+'h';
 const sc=v=>v==null?'':v>=95?'sg':v>=90?'so':'sb';
 
-/* ── Auto-login on load ── */
+/* ── Auto-login on page load ── */
 window.addEventListener('DOMContentLoaded', async () => {
-  if (MB_EMAIL === 'YOUR_EMAIL@spyne.ai') {
-    $('spinner').style.display='none';
-    $('splash-msg').textContent='Open this file in a text editor and fill in your credentials at the top.';
-    $('splash-err').textContent='MB_EMAIL and MB_PASSWORD are not set. Edit the <script> block at the top of this file.';
-    $('splash-err').style.display='block';
-    return;
-  }
   try {
-    $('splash-msg').textContent='Signing in to Metabase…';
-    const sr = await fetch(`${MB_URL}/api/session`,{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({username: MB_EMAIL, password: MB_PASSWORD})
+    $('splash-msg').textContent = 'Signing in to Metabase…';
+    const sr = await fetch(API_SESSION, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: MB_EMAIL, password: MB_PASSWORD })
     });
     const sj = await sr.json();
     if (!sr.ok || !sj.id) throw new Error(sj.message || sj.errors?.password || `Auth failed (${sr.status})`);
-    window._mbToken = sj.id;
+    mbToken = sj.id;
+    $('user-pill').textContent = MB_EMAIL;
     await loadData();
   } catch(e) {
-    $('spinner').style.display='none';
-    $('splash-msg').textContent='Could not sign in.';
-    $('splash-err').textContent = e.message;
-    $('splash-err').style.display='block';
+    $('spinner').style.display = 'none';
+    $('splash-msg').textContent = 'Sign-in failed.';
+    $('splash-err').innerHTML = `<strong>Error:</strong> ${e.message}<br><br>
+      Make sure the server is running: <code>cd catalog-api &amp;&amp; npm run dev</code><br>
+      Then open <code>http://localhost:3000</code> in your browser.`;
+    $('splash-err').style.display = 'block';
   }
 });
 
 async function loadData() {
-  $('splash').style.display='flex'; $('main').style.display='none';
-  $('splash-msg').textContent='Loading dashboard data…';
-  $('splash-err').style.display='none';
+  $('splash').style.display = 'flex';
+  $('main').style.display = 'none';
+  $('splash-msg').textContent = 'Loading dashboard data…';
+  $('splash-err').style.display = 'none';
+  if($('spinner')) $('spinner').style.display = 'block';
   try {
-    const r = await fetch(`${MB_URL}/api/card/${CARD_ID}/query`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','X-Metabase-Session': window._mbToken},
-      body: JSON.stringify({ignore_cache:false})
+    const r = await fetch(API_QUERY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Metabase-Session': mbToken }
     });
-    if (r.status===401) throw new Error('Session expired. Reload the page to sign in again.');
-    if (!r.ok) throw new Error(`Metabase returned ${r.status}`);
+    if (r.status === 401) {
+      // Re-auth
+      const sr = await fetch(API_SESSION, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({username:MB_EMAIL, password:MB_PASSWORD})
+      });
+      const sj = await sr.json();
+      if (!sr.ok || !sj.id) throw new Error('Session expired and re-auth failed.');
+      mbToken = sj.id;
+      return loadData();
+    }
+    if (!r.ok) throw new Error(`Server returned ${r.status}`);
     const j = await r.json();
+    if (j.error) throw new Error(j.error);
     const cols = j.data.cols.map(c=>c.name);
     allRows = j.data.rows.map(row=>{ const o={}; cols.forEach((k,i)=>o[k]=row[i]); return o; });
-    $('ts').textContent='Updated '+new Date().toLocaleTimeString();
-    $('splash').style.display='none'; $('main').style.display='block';
+    $('ts').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    $('splash').style.display = 'none';
+    $('main').style.display = 'block';
     render();
   } catch(e) {
-    $('spinner').style.display='none';
-    $('splash-msg').textContent='Failed to load data.';
-    $('splash-err').textContent=e.message; $('splash-err').style.display='block';
+    $('spinner').style.display = 'none';
+    $('splash-msg').textContent = 'Failed to load data.';
+    $('splash-err').innerHTML = `<strong>Error:</strong> ${e.message}`;
+    $('splash-err').style.display = 'block';
   }
 }
 
 async function refreshData() { await loadData(); }
 
-function setGran(g){
-  gran=g;
-  document.querySelectorAll('#gran-toggle button').forEach((b,i)=>
+function setGran(g) {
+  gran = g;
+  document.querySelectorAll('#gran-toggle button').forEach((b,i) =>
     b.classList.toggle('active',(i===0&&g==='month')||(i===1&&g==='day')));
   render();
 }
 
-function render(){
-  const rows=allRows.filter(r=>r.granularity===gran)
+function render() {
+  const rows = allRows.filter(r=>r.granularity===gran)
     .sort((a,b)=>new Date(a.sort_date)-new Date(b.sort_date));
   renderKPIs(rows); renderCharts(rows); renderTable();
 }
 
 /* ── KPIs ── */
-function renderKPIs(rows){
-  if(!rows.length){$('kpi-row').innerHTML='<p style="color:var(--text-m)">No data</p>';return;}
-  const last=rows[rows.length-1];
-  const per=gran==='month'?last.period:new Date(last.sort_date).toLocaleDateString();
-  $('kpi-row').innerHTML=SEGS.map(s=>`
+function renderKPIs(rows) {
+  if (!rows.length) { $('kpi-row').innerHTML='<p style="color:var(--text-m)">No data for this granularity.</p>'; return; }
+  const last = rows[rows.length-1];
+  const per = gran==='month' ? last.period : new Date(last.sort_date).toLocaleDateString();
+  $('kpi-row').innerHTML = SEGS.map(s=>`
     <div class="kpi" style="--seg:${s.color}">
       <div class="kpi-lbl">${s.label}</div>
       <div class="kpi-val ${sc(last[s.sla])}" style="color:${s.color}">${fp(last[s.sla])}</div>
@@ -312,34 +325,35 @@ function renderKPIs(rows){
 }
 
 /* ── Charts ── */
-const CDEF={responsive:true,maintainAspectRatio:false,
+const CDEF = {
+  responsive:true, maintainAspectRatio:false,
   interaction:{mode:'index',intersect:false},
   plugins:{legend:{display:false},tooltip:{padding:9,cornerRadius:8}},
   scales:{x:{grid:{display:false},ticks:{maxRotation:45,font:{size:10}}},
-    y:{grid:{color:'rgba(128,128,128,.1)'},ticks:{font:{size:10}}}}};
-
-function mkLabel(r){return gran==='month'?r.period:new Date(r.sort_date).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});}
+    y:{grid:{color:'rgba(128,128,128,.1)'},ticks:{font:{size:10}}}}
+};
+function mkLbl(r){return gran==='month'?r.period:new Date(r.sort_date).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});}
 function mkDS(rows,seg,field){return{label:seg.label,data:rows.map(r=>r[field]!=null?+Number(r[field]).toFixed(2):null),
   borderColor:seg.color,backgroundColor:seg.color+'22',borderWidth:2,
   pointRadius:gran==='month'?5:2,pointHoverRadius:7,tension:0.35,spanGaps:true};}
-function mkLegend(id,segs){$(id).innerHTML=segs.map(s=>`<div class="li"><div class="ld" style="background:${s.color}"></div><span>${s.label}</span></div>`).join('');}
+function mkLeg(id,segs){$(id).innerHTML=segs.map(s=>`<div class="li"><div class="ld" style="background:${s.color}"></div><span>${s.label}</span></div>`).join('');}
 function dc(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 
-function renderCharts(rows){
-  const labels=rows.map(mkLabel);
+function renderCharts(rows) {
+  const labels = rows.map(mkLbl);
 
   dc('sla');charts['sla']=new Chart($('c-sla'),{type:'line',data:{labels,datasets:SEGS.map(s=>mkDS(rows,s,s.sla))},
     options:{...CDEF,scales:{...CDEF.scales,y:{...CDEF.scales.y,min:60,max:100,ticks:{callback:v=>v+'%',font:{size:10}}}},
     plugins:{...CDEF.plugins,tooltip:{...CDEF.plugins.tooltip,callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(2)}%`}}}}});
-  mkLegend('l-sla',SEGS);
+  mkLeg('l-sla',SEGS);
 
   dc('p95');charts['p95']=new Chart($('c-p95'),{type:'line',data:{labels,datasets:SEGS.map(s=>mkDS(rows,s,s.p95))},
     options:{...CDEF,plugins:{...CDEF.plugins,tooltip:{...CDEF.plugins.tooltip,callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(2)}h`}}}}});
-  mkLegend('l-p95',SEGS);
+  mkLeg('l-p95',SEGS);
 
   dc('p99');charts['p99']=new Chart($('c-p99'),{type:'line',data:{labels,datasets:SEGS.map(s=>mkDS(rows,s,s.p99))},
     options:{...CDEF,plugins:{...CDEF.plugins,tooltip:{...CDEF.plugins.tooltip,callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(2)}h`}}}}});
-  mkLegend('l-p99',SEGS);
+  mkLeg('l-p99',SEGS);
 
   dc('ov');charts['ov']=new Chart($('c-ov'),{type:'line',
     data:{labels,datasets:[
@@ -353,24 +367,24 @@ function renderCharts(rows){
       scales:{x:{grid:{display:false},ticks:{maxRotation:45,font:{size:10}}},
         ySla:{position:'left',min:60,max:100,grid:{color:'rgba(128,128,128,.1)'},ticks:{callback:v=>v+'%',font:{size:10},color:'#4361ee'}},
         yTat:{position:'right',grid:{drawOnChartArea:false},ticks:{callback:v=>v+'h',font:{size:10},color:'#fc5c65'}}}}});
-  $('l-ov').innerHTML='<div class="li"><div class="ld" style="background:#4361ee"></div><span>Overall SLA %</span></div><div class="li"><div class="ld" style="background:#fc5c65"></div><span>P95 TAT (hrs)</span></div>';
+  $('l-ov').innerHTML='<div class="li"><div class="ld" style="background:#4361ee"></div><span>Overall SLA %</span></div><div class="li"><div class="ld" style="background:#fc5c65;border-radius:0"></div><span>P95 TAT (hrs)</span></div>';
 }
 
 /* ── Table ── */
 const TCOLS=[
-  {key:'period',fmt:(v,r)=>`<span class="pc">${r.period||new Date(r.sort_date).toLocaleDateString()}</span>`,label:'Period'},
-  {key:'granularity',fmt:v=>`<span class="badge b${v[0]}">${v}</span>`,label:'Granularity'},
-  {key:'sla_pct',fmt:v=>`<span class="${sc(v)}">${fp(v)}</span>`,label:'Overall SLA %'},
-  {key:'p95_tat_hrs',fmt:v=>fh(v),label:'P95 TAT'},
-  {key:'p99_tat_hrs',fmt:v=>fh(v),label:'P99 TAT'},
-  {key:'ent_sla_pct',fmt:v=>`<span class="${sc(v)}">${fp(v)}</span>`,label:'Ent SLA %'},
-  {key:'ent_p95_tat_hrs',fmt:v=>fh(v),label:'Ent P95'},
-  {key:'mid_sla_pct',fmt:v=>`<span class="${sc(v)}">${fp(v)}</span>`,label:'Mid SLA %'},
-  {key:'mid_p95_tat_hrs',fmt:v=>fh(v),label:'Mid P95'},
-  {key:'resellers_sla_pct',fmt:v=>`<span class="${sc(v)}">${fp(v)}</span>`,label:'Res SLA %'},
-  {key:'resellers_p95_tat_hrs',fmt:v=>fh(v),label:'Res P95'},
-  {key:'smb_sla_pct',fmt:v=>`<span class="${sc(v)}">${fp(v)}</span>`,label:'SMB SLA %'},
-  {key:'smb_p95_tat_hrs',fmt:v=>fh(v),label:'SMB P95'},
+  {key:'period',      fmt:(v,r)=>`<span class="pc">${r.period||new Date(r.sort_date).toLocaleDateString()}</span>`, label:'Period'},
+  {key:'granularity', fmt:v=>`<span class="badge b${v[0]}">${v}</span>`, label:'Granularity'},
+  {key:'sla_pct',           fmt:v=>`<span class="${sc(v)}">${fp(v)}</span>`, label:'Overall SLA %'},
+  {key:'p95_tat_hrs',       fmt:v=>fh(v), label:'P95 TAT'},
+  {key:'p99_tat_hrs',       fmt:v=>fh(v), label:'P99 TAT'},
+  {key:'ent_sla_pct',       fmt:v=>`<span class="${sc(v)}">${fp(v)}</span>`, label:'Ent SLA %'},
+  {key:'ent_p95_tat_hrs',   fmt:v=>fh(v), label:'Ent P95'},
+  {key:'mid_sla_pct',       fmt:v=>`<span class="${sc(v)}">${fp(v)}</span>`, label:'Mid SLA %'},
+  {key:'mid_p95_tat_hrs',   fmt:v=>fh(v), label:'Mid P95'},
+  {key:'resellers_sla_pct', fmt:v=>`<span class="${sc(v)}">${fp(v)}</span>`, label:'Res SLA %'},
+  {key:'resellers_p95_tat_hrs',fmt:v=>fh(v), label:'Res P95'},
+  {key:'smb_sla_pct',       fmt:v=>`<span class="${sc(v)}">${fp(v)}</span>`, label:'SMB SLA %'},
+  {key:'smb_p95_tat_hrs',   fmt:v=>fh(v), label:'SMB P95'},
 ];
 
 function renderTable(){
