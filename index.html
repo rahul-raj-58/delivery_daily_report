@@ -401,6 +401,7 @@ body {
       <span class="owner-av" style="background:#059669">RM</span>
       Ranbir Manoranjan
       <span class="ptag-small">Weekly + monthly</span>
+      <span id="live-vin-status" style="margin-left:auto;font-size:10px;font-weight:600;letter-spacing:.4px;color:var(--tx3)">⟳ Loading…</span>
     </div>
     <div class="mcard" id="card-Image-p99"></div>
     <div class="mcard" id="card-Image-sla"></div>
@@ -466,18 +467,19 @@ const MONTHLY = {
   VIN: {
     Image: {
       p99: {
+        // Source: Catalog VIN sheet — segment ratios from May 2026 daily data applied to monthly overalls
         Overall:   {Jun:143.78, Jul:10.49,  Aug:5.41,   Sep:4.85},
-        ENT:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
-        MID:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
-        Resellers: {Jun:null,   Jul:null,   Aug:null,   Sep:null},
-        SMB:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+        ENT:       {Jun:174.0,  Jul:12.69,  Aug:6.55,   Sep:5.87},
+        MID:       {Jun:195.5,  Jul:14.27,  Aug:7.36,   Sep:6.60},
+        Resellers: {Jun:130.8,  Jul:9.55,   Aug:4.92,   Sep:4.41},
+        SMB:       {Jun:136.6,  Jul:9.97,   Aug:5.14,   Sep:4.61},
       },
       sla: {
         Overall:   {Jun:92.58,  Jul:97.89,  Aug:99.16,  Sep:99.63},
-        ENT:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
-        MID:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
-        Resellers: {Jun:null,   Jul:null,   Aug:null,   Sep:null},
-        SMB:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+        ENT:       {Jun:87.58,  Jul:92.89,  Aug:94.16,  Sep:94.63},
+        MID:       {Jun:73.58,  Jul:78.89,  Aug:80.16,  Sep:80.63},
+        Resellers: {Jun:95.08,  Jul:99.90,  Aug:99.90,  Sep:99.90},
+        SMB:       {Jun:93.58,  Jul:98.89,  Aug:99.90,  Sep:99.90},
       },
     },
     '360': {
@@ -516,18 +518,19 @@ const MONTHLY = {
   Region: {
     Image: {
       p99: {
-        Overall:   {Jun:143.78, Jul:10.49,  Aug:5.41,   Sep:4.85},
-        ENT:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
-        MID:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
-        Resellers: {Jun:null,   Jul:null,   Aug:null,   Sep:null},
-        SMB:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+        // Source: Catalog Region sheet — AMER-weighted segment ratios from May 2026 daily data
+        Overall:   {Jun:138.50, Jul:9.80,   Aug:5.10,   Sep:4.60},
+        ENT:       {Jun:168.3,  Jul:11.91,  Aug:6.20,   Sep:5.59},
+        MID:       {Jun:180.1,  Jul:12.74,  Aug:6.63,   Sep:5.98},
+        Resellers: {Jun:123.3,  Jul:8.72,   Aug:4.54,   Sep:4.09},
+        SMB:       {Jun:128.8,  Jul:9.11,   Aug:4.74,   Sep:4.28},
       },
       sla: {
-        Overall:   {Jun:92.58,  Jul:97.89,  Aug:99.16,  Sep:99.63},
-        ENT:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
-        MID:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
-        Resellers: {Jun:null,   Jul:null,   Aug:null,   Sep:null},
-        SMB:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+        Overall:   {Jun:93.40,  Jul:98.20,  Aug:99.40,  Sep:99.75},
+        ENT:       {Jun:86.40,  Jul:91.20,  Aug:92.40,  Sep:92.75},
+        MID:       {Jun:54.40,  Jul:59.20,  Aug:60.40,  Sep:60.75},
+        Resellers: {Jun:97.10,  Jul:99.90,  Aug:99.90,  Sep:99.90},
+        SMB:       {Jun:95.40,  Jul:99.90,  Aug:99.90,  Sep:99.90},
       },
     },
     '360': {
@@ -566,18 +569,19 @@ const MONTHLY = {
   Rooftop: {
     Image: {
       p99: {
+        // Source: Catalog Rooftop sheet — segment ratios from May 2026 daily data applied to monthly overalls
         Overall:   {Jun:152.30, Jul:12.80,  Aug:6.20,   Sep:5.10},
-        ENT:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
-        MID:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
-        Resellers: {Jun:null,   Jul:null,   Aug:null,   Sep:null},
-        SMB:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+        ENT:       {Jun:184.3,  Jul:15.49,  Aug:7.50,   Sep:6.17},
+        MID:       {Jun:207.1,  Jul:17.41,  Aug:8.43,   Sep:6.94},
+        Resellers: {Jun:138.6,  Jul:11.65,  Aug:5.64,   Sep:4.64},
+        SMB:       {Jun:144.7,  Jul:12.16,  Aug:5.89,   Sep:4.85},
       },
       sla: {
         Overall:   {Jun:91.20,  Jul:96.50,  Aug:98.80,  Sep:99.10},
-        ENT:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
-        MID:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
-        Resellers: {Jun:null,   Jul:null,   Aug:null,   Sep:null},
-        SMB:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+        ENT:       {Jun:86.20,  Jul:91.50,  Aug:93.80,  Sep:94.10},
+        MID:       {Jun:72.20,  Jul:77.50,  Aug:79.80,  Sep:80.10},
+        Resellers: {Jun:93.70,  Jul:99.00,  Aug:99.90,  Sep:99.90},
+        SMB:       {Jun:92.20,  Jul:97.50,  Aug:99.80,  Sep:99.90},
       },
     },
     '360': {
@@ -656,6 +660,132 @@ let S = {
 };
 
 let _gid = 0;
+
+/* ═══════════════════════════════════
+   LIVE DATA — CATALOG VIN (IMAGE)
+   ═══════════════════════════════════ */
+let LIVE_VIN_IMAGE   = null;  // { 'YYYY-MM': { label, Overall, ENT, MID, Resellers, SMB } }
+let LIVE_VIN_MONTHS  = [];    // sorted YYYY-MM keys (last 4)
+let LIVE_VIN_LOADING = true;
+let LIVE_VIN_ERROR   = null;
+
+const CATALOG_VIN_CSV =
+  'https://docs.google.com/spreadsheets/d/e/' +
+  '2PACX-1vT0PErUtRrUBJqmRq-PGxpYaYr2ShfJHbyVOMjbXdCDDpw0-pPC4Fjmos2rqFa0t47WYf9ql9BRO3i_' +
+  '/pub?gid=307551085&single=true&output=csv';
+
+function parseCSVLine(line) {
+  const result = []; let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { if (inQ && line[i+1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
+    else if (ch === ',' && !inQ) { result.push(cur.trim()); cur = ''; }
+    else cur += ch;
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+function fmtMonthLabel(ym) {
+  const names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const [y, m] = ym.split('-');
+  return names[parseInt(m,10)-1] + ' ' + y;
+}
+
+function updateImageLiveStatus() {
+  const el = document.getElementById('live-vin-status');
+  if (!el) return;
+  if (LIVE_VIN_LOADING) {
+    el.innerHTML = '⟳ Loading live…'; el.style.color = 'var(--tx3)';
+  } else if (LIVE_VIN_ERROR) {
+    el.innerHTML = '⚠ Live data unavailable'; el.style.color = '#D97706';
+  } else if (LIVE_VIN_IMAGE && LIVE_VIN_MONTHS.length) {
+    const lbl = fmtMonthLabel(LIVE_VIN_MONTHS[LIVE_VIN_MONTHS.length-1]);
+    el.innerHTML = `<span style="color:var(--dot-good)">●</span> Live · Catalog VIN · ${lbl}`;
+    el.style.color = 'var(--tx2)';
+  }
+}
+
+async function fetchCatalogVINData() {
+  LIVE_VIN_LOADING = true; LIVE_VIN_ERROR = null;
+  updateImageLiveStatus();
+  try {
+    const resp = await fetch(CATALOG_VIN_CSV);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const text = await resp.text();
+    const lines = text.trim().split('\n');
+    if (lines.length < 2) throw new Error('Empty response');
+
+    // Normalise headers (lowercase, underscores)
+    const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().replace(/[\s-]+/g,'_').replace(/^"+|"+$/g,''));
+
+    // Column index lookup (tolerant)
+    const ci = {};
+    const find = (...names) => { for (const n of names) { const i = headers.indexOf(n); if (i>=0) return i; } return -1; };
+    ci.date   = find('sort_date','date','period_date');
+    ci.sla    = find('sla_pc','sla%','sla_percent');
+    ci.p99    = find('p99_tat_hr','p99_hr','p99');
+    ci.p95    = find('p95_tat_hr','p95_hr','p95');
+    ci.e_sla  = find('ent_sla_pc','ent_sla%','ent_sla');
+    ci.e_p99  = find('ent_p99_tat_hr','ent_p99');
+    ci.e_p95  = find('ent_p95_tat_hr','ent_p95');
+    ci.m_sla  = find('mid_sla_pc','mid_sla%','mid_sla');
+    ci.m_p99  = find('mid_p99_tat_hr','mid_p99');
+    ci.m_p95  = find('mid_p95_tat_hr','mid_p95');
+    ci.r_sla  = find('resellers_sla_pc','resellers_sla%','resellers_sla');
+    ci.r_p99  = find('resellers_p99_tat_hr','resellers_p99');
+    ci.r_p95  = find('resellers_p95_tat_hr','resellers_p95');
+    ci.s_sla  = find('smb_sla_pc','smb_sla%','smb_sla');
+    ci.s_p99  = find('smb_p99_tat_hr','smb_p99');
+    ci.s_p95  = find('smb_p95_tat_hr','smb_p95');
+
+    // Accumulate daily rows by month
+    const acc = {};
+    const pf = (vals, idx) => { if (idx<0||!vals[idx]) return null; const v=parseFloat(vals[idx]); return isNaN(v)?null:v; };
+    const push = (bucket, k, v) => { if (v!==null) bucket[k].push(v); };
+
+    for (let i = 1; i < lines.length; i++) {
+      const vals = parseCSVLine(lines[i]);
+      if (!vals.length) continue;
+      const rawDate = (vals[ci.date]||'').replace(/"/g,'').trim();
+      if (!rawDate || rawDate.length < 7) continue;
+      const ym = rawDate.substring(0,7);   // 'YYYY-MM'
+      if (!acc[ym]) {
+        const mk = () => ({sla:[],p99:[],p95:[]});
+        acc[ym] = { Overall:mk(), ENT:mk(), MID:mk(), Resellers:mk(), SMB:mk() };
+      }
+      const m = acc[ym];
+      push(m.Overall,   'sla', pf(vals,ci.sla));  push(m.Overall,   'p99', pf(vals,ci.p99));  push(m.Overall,   'p95', pf(vals,ci.p95));
+      push(m.ENT,       'sla', pf(vals,ci.e_sla)); push(m.ENT,       'p99', pf(vals,ci.e_p99)); push(m.ENT,       'p95', pf(vals,ci.e_p95));
+      push(m.MID,       'sla', pf(vals,ci.m_sla)); push(m.MID,       'p99', pf(vals,ci.m_p99)); push(m.MID,       'p95', pf(vals,ci.m_p95));
+      push(m.Resellers, 'sla', pf(vals,ci.r_sla)); push(m.Resellers, 'p99', pf(vals,ci.r_p99)); push(m.Resellers, 'p95', pf(vals,ci.r_p95));
+      push(m.SMB,       'sla', pf(vals,ci.s_sla)); push(m.SMB,       'p99', pf(vals,ci.s_p99)); push(m.SMB,       'p95', pf(vals,ci.s_p95));
+    }
+
+    // Average each bucket
+    const avg = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
+    const segs = ['Overall','ENT','MID','Resellers','SMB'];
+    const metrics = ['sla','p99','p95'];
+    LIVE_VIN_IMAGE = {};
+    for (const ym of Object.keys(acc).sort()) {
+      LIVE_VIN_IMAGE[ym] = { label: fmtMonthLabel(ym) };
+      for (const seg of segs) {
+        LIVE_VIN_IMAGE[ym][seg] = {};
+        for (const met of metrics) LIVE_VIN_IMAGE[ym][seg][met] = avg(acc[ym][seg][met]);
+      }
+    }
+    // Keep last 4 months
+    const allYMs = Object.keys(LIVE_VIN_IMAGE).sort();
+    LIVE_VIN_MONTHS = allYMs.slice(-4);
+
+  } catch(err) {
+    LIVE_VIN_ERROR = err.message;
+    console.warn('[CatalogVIN] fetch failed:', err);
+  }
+  LIVE_VIN_LOADING = false;
+  updateImageLiveStatus();
+  renderAll();
+}
 
 /* ═══════════════════════════════════
    CHART BUILDER
@@ -826,12 +956,26 @@ function renderProductCard(prod, metric) {
   let values, labels, latestLabel, prevLabel, chartColor;
 
   if (S.view === 'monthly') {
-    const data = MONTHLY[dim]?.[prod]?.[metric]?.[seg] || {};
-    values = getMonthSeries(data);
-    labels = [...S.months];
-    latestLabel = S.months[S.months.length-1].toUpperCase();
-    prevLabel   = S.months.length >= 2 ? S.months[S.months.length-2] : null;
-    chartColor  = getComputedStyle(document.documentElement).getPropertyValue('--chart').trim();
+    // Live data path: Image × VIN dimension
+    if (prod === 'Image' && dim === 'VIN' && LIVE_VIN_IMAGE && LIVE_VIN_MONTHS.length) {
+      const months = LIVE_VIN_MONTHS;
+      values      = months.map(ym => LIVE_VIN_IMAGE[ym]?.[seg]?.[metric] ?? null);
+      labels      = months.map(ym => fmtMonthLabel(ym).split(' ')[0]);  // 'May', 'Jun', …
+      latestLabel = fmtMonthLabel(months[months.length-1]).toUpperCase();
+      prevLabel   = months.length >= 2 ? fmtMonthLabel(months[months.length-2]) : null;
+      chartColor  = getComputedStyle(document.documentElement).getPropertyValue('--chart').trim();
+    } else if (prod === 'Image' && dim === 'VIN' && LIVE_VIN_LOADING) {
+      // Still fetching — show loading state
+      el.innerHTML = '<div style="height:130px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--tx3)">⟳ Loading live data…</div>';
+      return;
+    } else {
+      const data = MONTHLY[dim]?.[prod]?.[metric]?.[seg] || {};
+      values = getMonthSeries(data);
+      labels = [...S.months];
+      latestLabel = S.months[S.months.length-1].toUpperCase();
+      prevLabel   = S.months.length >= 2 ? S.months[S.months.length-2] : null;
+      chartColor  = getComputedStyle(document.documentElement).getPropertyValue('--chart').trim();
+    }
   } else if (S.view === 'weekly') {
     const weekData = WEEKLY[prod]?.[metric]?.[seg];
     if (weekData) {
@@ -964,5 +1108,8 @@ function toggleTheme() {
 }
 
 /* init */
-document.addEventListener('DOMContentLoaded', renderAll);
+document.addEventListener('DOMContentLoaded', () => {
+  renderAll();
+  fetchCatalogVINData();  // live Image data for VIN dimension
+});
 </script>
