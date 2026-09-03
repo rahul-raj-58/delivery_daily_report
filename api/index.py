@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 CH_HOST     = os.environ.get("CH_HOST",     "leio048s4j.us-east-1.aws.clickhouse.cloud")
 CH_PORT     = int(os.environ.get("CH_PORT", "8443"))
 CH_USER     = os.environ.get("CH_USER",     "rahul.raj")
-CH_PASSWORD = os.environ.get("CH_PASSWORD", "Jh1_IYZ%Czzl0nEi")   # Set this in Vercel dashboard — never hardcode
+CH_PASSWORD = os.environ.get("CH_PASSWORD", "")   # Set this in Vercel dashboard — never hardcode
 CACHE_TTL   = int(os.environ.get("CACHE_TTL", "300"))
 
 # ── App ─────────────────────────────────────────────────────────────────────
