@@ -1,25 +1,28 @@
 """
 Spyne SLA Dashboard API — Vercel serverless entry point
-Credentials: set as Environment Variables in your Vercel project settings.
+Set these in Vercel Project Settings → Environment Variables:
+  CH_HOST, CH_PORT, CH_USER, CH_PASSWORD, CACHE_TTL
 """
 
 import os
 import time
 import logging
+import traceback
 from datetime import datetime
 
 import clickhouse_connect
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ── Config (from Vercel Environment Variables) ──────────────────────────────
+# ── Config ──────────────────────────────────────────────────────────────────
 CH_HOST     = os.environ.get("CH_HOST",     "leio048s4j.us-east-1.aws.clickhouse.cloud")
 CH_PORT     = int(os.environ.get("CH_PORT", "8443"))
 CH_USER     = os.environ.get("CH_USER",     "rahul.raj")
-CH_PASSWORD = os.environ.get("CH_PASSWORD", "")   # Set this in Vercel dashboard — never hardcode
+CH_PASSWORD = os.environ.get("CH_PASSWORD", "")
 CACHE_TTL   = int(os.environ.get("CACHE_TTL", "300"))
 
 # ── App ─────────────────────────────────────────────────────────────────────
@@ -32,7 +35,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── ClickHouse (new client per cold start — serverless has no persistent conn) ──
+# ── ClickHouse client ────────────────────────────────────────────────────────
 def get_ch_client():
     return clickhouse_connect.get_client(
         host=CH_HOST,
@@ -41,10 +44,10 @@ def get_ch_client():
         password=CH_PASSWORD,
         secure=True,
         connect_timeout=30,
-        send_receive_timeout=600,
+        send_receive_timeout=280,   # stay under Vercel's 300s limit
     )
 
-# ── Simple in-process cache (survives within one warm lambda instance) ───────
+# ── Simple cache ─────────────────────────────────────────────────────────────
 _cache: dict = {}
 
 def get_cached(key):
@@ -221,7 +224,42 @@ COLUMNS = [
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
+    return {
+        "status": "ok",
+        "timestamp": datetime.utcnow().isoformat(),
+        "ch_host": CH_HOST,
+        "ch_user": CH_USER,
+        "ch_password_set": bool(CH_PASSWORD),
+    }
+
+
+@app.get("/api/debug")
+async def debug():
+    """
+    Diagnose connection issues. Open this URL in your browser to see
+    exactly what's failing: /api/debug
+    """
+    result = {
+        "env": {
+            "CH_HOST": CH_HOST,
+            "CH_PORT": CH_PORT,
+            "CH_USER": CH_USER,
+            "CH_PASSWORD_set": bool(CH_PASSWORD),
+            "CH_PASSWORD_length": len(CH_PASSWORD),
+        },
+        "connection": None,
+        "error": None,
+        "traceback": None,
+    }
+    try:
+        client = get_ch_client()
+        ver = client.query("SELECT version()").result_rows[0][0]
+        result["connection"] = f"OK — ClickHouse {ver}"
+    except Exception as e:
+        result["connection"] = "FAILED"
+        result["error"] = str(e)
+        result["traceback"] = traceback.format_exc()
+    return result
 
 
 @app.get("/api/sla-data")
@@ -238,8 +276,17 @@ async def sla_data(refresh: bool = Query(False)):
         result = client.query(SLA_QUERY)
         rows = result.result_rows
     except Exception as exc:
-        logger.error(f"ClickHouse error: {exc}")
-        raise HTTPException(status_code=500, detail=str(exc))
+        tb = traceback.format_exc()
+        logger.error(f"ClickHouse error:\n{tb}")
+        # Return 500 with the real error so the dashboard can display it
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": str(exc),
+                "hint": "Check /api/debug for connection diagnostics",
+                "traceback": tb,
+            }
+        )
 
     elapsed = round(time.time() - t0, 2)
     records = []
@@ -265,5 +312,3 @@ async def sla_data(refresh: bool = Query(False)):
 async def clear_cache():
     _cache.clear()
     return {"cleared": True}
-    
-
