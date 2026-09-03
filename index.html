@@ -1,0 +1,968 @@
+<title>Delivery Metrics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+:root {
+  --bg:       #F3F6FB;
+  --card:     #FFFFFF;
+  --border:   #E2EAF4;
+  --border-2: #D0DAF0;
+  --bar-bg:   #FFFFFF;
+  --tx1:      #0F172A;
+  --tx2:      #475569;
+  --tx3:      #94A3B8;
+  --tx4:      #CBD5E1;
+
+  --act:      #059669;    /* active pill green */
+  --act-bg:   #059669;
+  --act-text: #FFFFFF;
+
+  --chart:    #0BA97A;    /* teal line */
+  --dot-good: #22C55E;
+  --dot-bad:  #EF4444;
+
+  --good:     #059669;
+  --warn:     #D97706;
+  --crit:     #DC2626;
+
+  --c-ent:  #2563EB;
+  --c-mid:  #7C3AED;
+  --c-res:  #DB2777;
+  --c-smb:  #D97706;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:       #090D18;
+    --card:     #101626;
+    --border:   #1A2438;
+    --border-2: #243050;
+    --bar-bg:   #0C1020;
+    --tx1:      #E4ECFF;
+    --tx2:      #7A8BAA;
+    --tx3:      #3E506A;
+    --tx4:      #2A3A54;
+    --act:      #059669;
+    --chart:    #0BA97A;
+    --dot-good: #22C55E;
+    --dot-bad:  #EF4444;
+    --good:     #10B981;
+    --warn:     #F59E0B;
+    --crit:     #EF4444;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:       #090D18;
+  --card:     #101626;
+  --border:   #1A2438;
+  --border-2: #243050;
+  --bar-bg:   #0C1020;
+  --tx1:      #E4ECFF;
+  --tx2:      #7A8BAA;
+  --tx3:      #3E506A;
+  --tx4:      #2A3A54;
+  --act:      #059669;
+  --chart:    #0BA97A;
+  --dot-good: #22C55E;
+  --dot-bad:  #EF4444;
+  --good:     #10B981;
+  --warn:     #F59E0B;
+  --crit:     #EF4444;
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+body {
+  font-family:'Sora',system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--tx1);
+  font-size:13px;
+  line-height:1.5;
+  min-height:100vh;
+}
+
+/* ═══ FILTER BAR ═══ */
+.fbar {
+  background:var(--bar-bg);
+  border-bottom:1px solid var(--border);
+  padding:10px 20px;
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:10px;
+  position:sticky;
+  top:0;
+  z-index:100;
+}
+.fbar-brand {
+  font-size:14px;
+  font-weight:700;
+  color:var(--tx1);
+  letter-spacing:-.3px;
+  margin-right:6px;
+  white-space:nowrap;
+}
+.fbar-sep {
+  width:1px;
+  height:22px;
+  background:var(--border-2);
+  flex-shrink:0;
+}
+.pill-group {
+  display:flex;
+  gap:2px;
+}
+.pill {
+  padding:5px 13px;
+  border-radius:20px;
+  border:1px solid var(--border-2);
+  background:none;
+  color:var(--tx2);
+  font-family:inherit;
+  font-size:12px;
+  font-weight:500;
+  cursor:pointer;
+  white-space:nowrap;
+  transition:all .14s;
+  letter-spacing:.1px;
+}
+.pill.on {
+  background:var(--act-bg);
+  border-color:var(--act-bg);
+  color:var(--act-text);
+}
+.pill:hover:not(.on) {
+  border-color:var(--border-2);
+  background:var(--bg);
+  color:var(--tx1);
+}
+
+/* date range */
+.dr-wrap {
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:11.5px;
+  color:var(--tx2);
+  flex-shrink:0;
+}
+.dr-input {
+  padding:4px 8px;
+  border:1px solid var(--border-2);
+  border-radius:6px;
+  background:var(--card);
+  color:var(--tx1);
+  font-family:inherit;
+  font-size:11.5px;
+  cursor:pointer;
+  outline:none;
+}
+.dr-input:focus { border-color:var(--act); }
+.dr-clear {
+  font-size:11px;
+  color:var(--tx3);
+  cursor:pointer;
+  border:none;
+  background:none;
+  font-family:inherit;
+  padding:0 4px;
+  transition:color .14s;
+}
+.dr-clear:hover { color:var(--crit); }
+.theme-btn {
+  width:30px;height:30px;
+  border-radius:6px;
+  border:1px solid var(--border-2);
+  background:none;
+  cursor:pointer;
+  display:grid;place-items:center;
+  color:var(--tx2);
+  flex-shrink:0;
+  transition:all .14s;
+}
+.theme-btn:hover { background:var(--bg); color:var(--tx1); }
+
+/* ═══ PRODUCT GRID ═══ */
+.pgrid {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:0;
+  padding:0 20px 40px;
+}
+.pcol {
+  border-right:1px solid var(--border);
+  padding:0 16px;
+}
+.pcol:first-child { padding-left:0; }
+.pcol:last-child  { border-right:none; padding-right:0; }
+
+/* column header */
+.pcol-head {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:18px 0 4px;
+}
+.pdot {
+  width:10px;height:10px;
+  border-radius:50%;
+  flex-shrink:0;
+}
+.pname {
+  font-size:16px;
+  font-weight:700;
+  color:var(--tx1);
+  letter-spacing:-.3px;
+}
+.powner {
+  font-size:11px;
+  color:var(--tx3);
+  padding-bottom:16px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.owner-av {
+  width:20px;height:20px;
+  border-radius:50%;
+  display:grid;place-items:center;
+  font-size:8px;
+  font-weight:700;
+  color:#fff;
+  flex-shrink:0;
+}
+.ptag-small {
+  font-size:9.5px;
+  padding:1px 5px;
+  border-radius:3px;
+  border:1px solid var(--border-2);
+  color:var(--tx3);
+}
+
+/* ═══ METRIC CARD ═══ */
+.mcard {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:14px 14px 10px;
+  margin-bottom:10px;
+}
+.mc-row1 {
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-bottom:2px;
+}
+.mc-label {
+  font-size:11px;
+  font-weight:600;
+  color:var(--tx3);
+  letter-spacing:.5px;
+  text-transform:uppercase;
+}
+.mc-val {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:22px;
+  font-weight:500;
+  color:var(--tx1);
+  font-variant-numeric:tabular-nums;
+  letter-spacing:-.5px;
+  line-height:1;
+}
+.mc-period {
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.7px;
+  color:var(--tx3);
+  background:var(--bg);
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:2px 6px;
+  flex-shrink:0;
+  align-self:center;
+}
+.mc-delta {
+  font-size:11.5px;
+  margin-bottom:8px;
+  min-height:16px;
+  display:flex;
+  align-items:center;
+  gap:4px;
+  flex-wrap:wrap;
+}
+.delta-up   { color:var(--good); }
+.delta-down { color:var(--crit); }
+.delta-neu  { color:var(--tx3);  }
+.mc-chart   { position:relative; }
+.chart-empty {
+  height:70px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;color:var(--tx3);
+}
+.no-data-msg {
+  font-size:11px;
+  color:var(--tx3);
+  text-align:center;
+  padding:20px 0;
+}
+
+/* daily placeholder */
+.daily-placeholder {
+  height:90px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  color:var(--tx3);
+  font-size:11px;
+  border:1px dashed var(--border-2);
+  border-radius:8px;
+  margin-top:4px;
+}
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:1100px) {
+  .pgrid { grid-template-columns:1fr 1fr; }
+  .pcol  { border-right:none; border-bottom:1px solid var(--border); }
+  .pcol:last-child { border-bottom:none; }
+}
+@media(max-width:640px) {
+  .pgrid { grid-template-columns:1fr; }
+  .pgrid,.fbar { padding-left:14px; padding-right:14px; }
+  .dr-wrap { margin-left:0; }
+}
+@media(prefers-reduced-motion:reduce){
+  *{ transition:none!important; }
+}
+</style>
+
+<!-- ═══ FILTER BAR ═══ -->
+<div class="fbar">
+  <div class="fbar-brand">Delivery Metrics</div>
+
+  <!-- Period -->
+  <div class="pill-group" role="group" aria-label="Time granularity">
+    <button class="pill on" data-view="monthly" onclick="setView('monthly')">Monthly</button>
+    <button class="pill"    data-view="weekly"  onclick="setView('weekly')">Weekly</button>
+    <button class="pill"    data-view="daily"   onclick="setView('daily')">Daily</button>
+  </div>
+
+  <div class="fbar-sep"></div>
+
+  <!-- Segment -->
+  <div class="pill-group" role="group" aria-label="Customer segment">
+    <button class="pill on" data-seg="Overall"   onclick="setSeg('Overall')">All</button>
+    <button class="pill"    data-seg="ENT"        onclick="setSeg('ENT')">ENT</button>
+    <button class="pill"    data-seg="MID"        onclick="setSeg('MID')">MID</button>
+    <button class="pill"    data-seg="Resellers"  onclick="setSeg('Resellers')">Resellers</button>
+    <button class="pill"    data-seg="SMB"        onclick="setSeg('SMB')">SMB</button>
+  </div>
+
+  <div class="fbar-sep"></div>
+
+  <!-- Dimension -->
+  <div class="pill-group" role="group" aria-label="Catalog dimension">
+    <button class="pill on" data-dim="VIN"     onclick="setDim('VIN')">VIN</button>
+    <button class="pill"    data-dim="Region"  onclick="setDim('Region')">Region</button>
+    <button class="pill"    data-dim="Rooftop" onclick="setDim('Rooftop')">Rooftop</button>
+  </div>
+
+  <!-- Date range -->
+  <div class="dr-wrap">
+    <span>From</span>
+    <input class="dr-input" type="month" id="dr-from" value="2025-06" min="2025-06" max="2025-09" onchange="setRange()">
+    <span>to</span>
+    <input class="dr-input" type="month" id="dr-to"   value="2025-09" min="2025-06" max="2025-09" onchange="setRange()">
+    <button class="dr-clear" onclick="clearRange()" title="Reset to 4 months">✕ Reset</button>
+    <button class="theme-btn" onclick="toggleTheme()" aria-label="Toggle theme">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+        <circle cx="12" cy="12" r="4.5"/>
+        <line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<!-- ═══ PRODUCT GRID ═══ -->
+<div class="pgrid">
+  <!-- Image -->
+  <div class="pcol" id="col-Image">
+    <div class="pcol-head">
+      <span class="pdot" style="background:#059669"></span>
+      <span class="pname">Image</span>
+    </div>
+    <div class="powner">
+      <span class="owner-av" style="background:#059669">RM</span>
+      Ranbir Manoranjan
+      <span class="ptag-small">Weekly + monthly</span>
+    </div>
+    <div class="mcard" id="card-Image-p99"></div>
+    <div class="mcard" id="card-Image-sla"></div>
+  </div>
+
+  <!-- 360 -->
+  <div class="pcol" id="col-360">
+    <div class="pcol-head">
+      <span class="pdot" style="background:#2563EB"></span>
+      <span class="pname">360</span>
+    </div>
+    <div class="powner">
+      <span class="owner-av" style="background:#2563EB">NK</span>
+      Nand Kishor
+      <span class="ptag-small">Weekly + monthly</span>
+    </div>
+    <div class="mcard" id="card-360-p99"></div>
+    <div class="mcard" id="card-360-sla"></div>
+  </div>
+
+  <!-- Video -->
+  <div class="pcol" id="col-Video">
+    <div class="pcol-head">
+      <span class="pdot" style="background:#7C3AED"></span>
+      <span class="pname">Video</span>
+    </div>
+    <div class="powner">
+      <span class="owner-av" style="background:#7C3AED">NK</span>
+      Nitin Kumar
+      <span class="ptag-small">Weekly + monthly</span>
+    </div>
+    <div class="mcard" id="card-Video-p99"></div>
+    <div class="mcard" id="card-Video-sla"></div>
+  </div>
+
+  <!-- Catalog -->
+  <div class="pcol" id="col-Catalog">
+    <div class="pcol-head">
+      <span class="pdot" style="background:#D97706"></span>
+      <span class="pname">Catalog</span>
+    </div>
+    <div class="powner">
+      <span class="owner-av" style="background:#D97706">SR</span>
+      Sumit Rana
+      <span class="ptag-small">Weekly + monthly</span>
+    </div>
+    <div class="mcard" id="card-Catalog-accounts"></div>
+    <div class="mcard" id="card-Catalog-reviews"></div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════
+   DATA
+   ═══════════════════════════════════ */
+const ALL_MONTHS   = ['Jun','Jul','Aug','Sep'];
+const MONTH_MAP    = { 'Jun':'2025-06','Jul':'2025-07','Aug':'2025-08','Sep':'2025-09' };
+const REV_MONTH    = { '2025-06':'Jun','2025-07':'Jul','2025-08':'Aug','2025-09':'Sep' };
+const WEEKLY_LABELS = ['W1','W2','W3','W4'];
+
+/* Monthly data [Jun,Jul,Aug,Sep] by dimension → product → metric → segment */
+const MONTHLY = {
+  VIN: {
+    Image: {
+      p99: {
+        Overall:   {Jun:143.78, Jul:10.49,  Aug:5.41,   Sep:4.85},
+        ENT:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+        MID:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+        Resellers: {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+        SMB:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+      },
+      sla: {
+        Overall:   {Jun:92.58,  Jul:97.89,  Aug:99.16,  Sep:99.63},
+        ENT:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+        MID:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+        Resellers: {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+        SMB:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+      },
+    },
+    '360': {
+      p99: {
+        Overall:   {Jun:663.44, Jul:464.83, Aug:323.40, Sep:149.60},
+        ENT:       {Jun:675.35, Jul:455.54, Aug:313.30, Sep:146.58},
+        MID:       {Jun:520.36, Jul:486.86, Aug:457.80, Sep:226.19},
+        Resellers: {Jun:597.86, Jul:528.77, Aug:385.52, Sep:197.95},
+        SMB:       {Jun:787.97, Jul:570.68, Aug:167.63, Sep:169.70},
+      },
+      sla: {
+        Overall:   {Jun:45.66,  Jul:55.53,  Aug:84.61,  Sep:93.00},
+        ENT:       {Jun:48.25,  Jul:58.58,  Aug:85.74,  Sep:93.30},
+        MID:       {Jun:31.83,  Jul:35.27,  Aug:79.97,  Sep:90.05},
+        Resellers: {Jun:38.14,  Jul:42.29,  Aug:82.68,  Sep:91.93},
+        SMB:       {Jun:34.51,  Jul:49.31,  Aug:79.38,  Sep:89.80},
+      },
+    },
+    Video: {
+      p99: {
+        Overall:   {Jun:1012.20,Jul:520.50, Aug:242.38, Sep:486.11},
+        ENT:       {Jun:1114.59,Jul:439.77, Aug:37.03,  Sep:151.14},
+        MID:       {Jun:310.75, Jul:330.47, Aug:209.17, Sep:173.64},
+        Resellers: {Jun:762.67, Jul:608.69, Aug:269.28, Sep:199.46},
+        SMB:       {Jun:1654.42,Jul:886.91, Aug:329.39, Sep:225.27},
+      },
+      sla: {
+        Overall:   {Jun:65.77,  Jul:72.97,  Aug:81.83,  Sep:85.49},
+        ENT:       {Jun:74.95,  Jul:81.36,  Aug:93.40,  Sep:86.18},
+        MID:       {Jun:71.48,  Jul:78.18,  Aug:93.91,  Sep:91.47},
+        Resellers: {Jun:69.05,  Jul:67.98,  Aug:80.70,  Sep:88.47},
+        SMB:       {Jun:66.62,  Jul:57.77,  Aug:67.44,  Sep:89.47},
+      },
+    },
+  },
+  Region: {
+    Image: {
+      p99: {
+        Overall:   {Jun:143.78, Jul:10.49,  Aug:5.41,   Sep:4.85},
+        ENT:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+        MID:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+        Resellers: {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+        SMB:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+      },
+      sla: {
+        Overall:   {Jun:92.58,  Jul:97.89,  Aug:99.16,  Sep:99.63},
+        ENT:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+        MID:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+        Resellers: {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+        SMB:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+      },
+    },
+    '360': {
+      p99: {
+        Overall:   {Jun:663.44, Jul:464.83, Aug:323.40, Sep:149.60},
+        ENT:       {Jun:675.35, Jul:455.54, Aug:313.30, Sep:146.58},
+        MID:       {Jun:520.36, Jul:486.86, Aug:457.80, Sep:226.19},
+        Resellers: {Jun:597.86, Jul:528.77, Aug:385.52, Sep:197.95},
+        SMB:       {Jun:787.97, Jul:570.68, Aug:167.63, Sep:169.70},
+      },
+      sla: {
+        Overall:   {Jun:45.66,  Jul:55.53,  Aug:84.61,  Sep:93.00},
+        ENT:       {Jun:48.25,  Jul:58.58,  Aug:85.74,  Sep:93.30},
+        MID:       {Jun:31.83,  Jul:35.27,  Aug:79.97,  Sep:90.05},
+        Resellers: {Jun:38.14,  Jul:42.29,  Aug:82.68,  Sep:91.93},
+        SMB:       {Jun:34.51,  Jul:49.31,  Aug:79.38,  Sep:89.80},
+      },
+    },
+    Video: {
+      p99: {
+        Overall:   {Jun:1012.20,Jul:520.50, Aug:242.38, Sep:486.11},
+        ENT:       {Jun:1114.59,Jul:439.77, Aug:37.03,  Sep:151.14},
+        MID:       {Jun:310.75, Jul:330.47, Aug:209.17, Sep:173.64},
+        Resellers: {Jun:762.67, Jul:608.69, Aug:269.28, Sep:199.46},
+        SMB:       {Jun:1654.42,Jul:886.91, Aug:329.39, Sep:225.27},
+      },
+      sla: {
+        Overall:   {Jun:65.77,  Jul:72.97,  Aug:81.83,  Sep:85.49},
+        ENT:       {Jun:74.95,  Jul:81.36,  Aug:93.40,  Sep:86.18},
+        MID:       {Jun:71.48,  Jul:78.18,  Aug:93.91,  Sep:91.47},
+        Resellers: {Jun:69.05,  Jul:67.98,  Aug:80.70,  Sep:88.47},
+        SMB:       {Jun:66.62,  Jul:57.77,  Aug:67.44,  Sep:89.47},
+      },
+    },
+  },
+  Rooftop: {
+    Image: {
+      p99: {
+        Overall:   {Jun:152.30, Jul:12.80,  Aug:6.20,   Sep:5.10},
+        ENT:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+        MID:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+        Resellers: {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+        SMB:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+      },
+      sla: {
+        Overall:   {Jun:91.20,  Jul:96.50,  Aug:98.80,  Sep:99.10},
+        ENT:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+        MID:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+        Resellers: {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+        SMB:       {Jun:null,   Jul:null,   Aug:null,   Sep:null},
+      },
+    },
+    '360': {
+      p99: {
+        Overall:   {Jun:680.20, Jul:478.50, Aug:335.80, Sep:162.40},
+        ENT:       {Jun:692.10, Jul:468.30, Aug:325.60, Sep:158.90},
+        MID:       {Jun:538.70, Jul:502.10, Aug:472.30, Sep:241.50},
+        Resellers: {Jun:615.40, Jul:485.20, Aug:398.95, Sep:200.20},
+        SMB:       {Jun:805.30, Jul:586.20, Aug:180.40, Sep:184.10},
+      },
+      sla: {
+        Overall:   {Jun:43.20,  Jul:52.80,  Aug:82.40,  Sep:91.50},
+        ENT:       {Jun:45.80,  Jul:55.30,  Aug:83.60,  Sep:92.10},
+        MID:       {Jun:29.40,  Jul:33.20,  Aug:77.80,  Sep:88.90},
+        Resellers: {Jun:36.52,  Jul:40.77,  Aug:80.62,  Sep:90.13},
+        SMB:       {Jun:32.10,  Jul:46.80,  Aug:77.10,  Sep:87.60},
+      },
+    },
+    Video: {
+      p99: {
+        Overall:   {Jun:1048.50,Jul:542.30, Aug:258.70, Sep:502.80},
+        ENT:       {Jun:1142.80,Jul:458.20, Aug:42.50,  Sep:163.20},
+        MID:       {Jun:328.40, Jul:348.90, Aug:225.60, Sep:188.30},
+        Resellers: {Jun:735.60, Jul:403.55, Aug:134.05, Sep:175.75},
+        SMB:       {Jun:1698.30,Jul:912.40, Aug:348.20, Sep:241.60},
+      },
+      sla: {
+        Overall:   {Jun:63.40,  Jul:70.20,  Aug:79.80,  Sep:83.70},
+        ENT:       {Jun:72.30,  Jul:79.10,  Aug:91.60,  Sep:84.50},
+        MID:       {Jun:69.20,  Jul:75.80,  Aug:91.90,  Sep:90.10},
+        Resellers: {Jun:66.75,  Jul:72.45,  Aug:79.70,  Sep:87.30},
+        SMB:       {Jun:64.10,  Jul:55.30,  Aug:65.80,  Sep:87.90},
+      },
+    },
+  },
+};
+
+/* Weekly data (4 weeks of Sep 2025) */
+const WEEKLY = {
+  Image:   { p99:{ Overall:[null,null,null,null] }, sla:{ Overall:[null,null,null,null] } },
+  '360':   { p99:{ Overall:[71.17,147.15,237.32,263.59], ENT:[67.2,140.3,228.1,255.4], MID:[80.5,162.0,254.6,280.1], Resellers:[74.1,153.2,241.8,268.7], SMB:[69.3,145.7,232.5,261.2] },
+             sla:{ Overall:[94.6,86.6,95.7,93.02], ENT:[95.1,88.2,96.3,94.1], MID:[92.4,84.1,94.8,91.3], Resellers:[93.8,85.9,95.5,92.7], SMB:[91.6,82.7,93.9,90.4] } },
+  Video:   { p99:{ Overall:[58.72,185.0,488.79,50.51], ENT:[52.1,168.4,452.3,45.8], MID:[45.3,142.6,386.1,39.2], Resellers:[55.8,176.2,470.5,48.1], SMB:[68.4,214.8,566.3,58.6] },
+             sla:{ Overall:[77.29,70.91,81.58,89.30], ENT:[79.8,73.6,84.2,91.7], MID:[80.4,74.9,85.6,92.8], Resellers:[76.2,69.4,80.1,88.3], SMB:[74.1,66.2,77.4,85.6] } },
+  Catalog: { accounts:[50,50,51,53], reviews:[293363,234886,230058,233492],
+             accountsBySegs:{ ENT:[22,22,22,22], MID:[5,5,5,5], Resellers:[3,3,4,4], SMB:[24,24,24,25] },
+             reviewsBySegs:{ ENT:[187560,150000,145000,142000], MID:[127459,102000,97000,93000], Resellers:[42000,38000,36000,35000], SMB:[42794,34000,32000,32000] } },
+};
+
+/* Catalog monthly */
+const CAT_MONTHLY = {
+  accounts: {
+    Overall:   {Jun:60,  Jul:61,  Aug:60,  Sep:50},
+    ENT:       {Jun:25,  Jul:25,  Aug:25,  Sep:22},
+    MID:       {Jun:8,   Jul:8,   Aug:7,   Sep:5},
+    Resellers: {Jun:4,   Jul:4,   Aug:4,   Sep:3},
+    SMB:       {Jun:26,  Jul:28,  Aug:28,  Sep:24},
+  },
+  reviews: {
+    Overall:   {Jun:16500,  Jul:302078,  Aug:948287,  Sep:820580},
+    ENT:       {Jun:10000,  Jul:151039,  Aug:401872,  Sep:187560},
+    MID:       {Jun:4000,   Jul:75500,   Aug:2773896, Sep:127459},
+    Resellers: {Jun:1200,   Jul:24000,   Aug:85000,   Sep:42794},
+    SMB:       {Jun:2500,   Jul:75539,   Aug:272519,  Sep:42794},
+  },
+};
+
+/* ═══════════════════════════════════
+   STATE
+   ═══════════════════════════════════ */
+let S = {
+  view:    'monthly',
+  seg:     'Overall',
+  dim:     'VIN',
+  months:  ['Jun','Jul','Aug','Sep'], // active monthly window
+};
+
+let _gid = 0;
+
+/* ═══════════════════════════════════
+   CHART BUILDER
+   ═══════════════════════════════════ */
+function buildChart({ values, labels, lowerIsBetter, unit, color }) {
+  color = color || getComputedStyle(document.documentElement).getPropertyValue('--chart').trim() || '#0BA97A';
+  const W=280, H=108;
+  const PL=6, PR=6, PT=22, PB=22;
+  const cW=W-PL-PR, cH=H-PT-PB;
+
+  const valid = values.filter(v => v!=null && !isNaN(v));
+  if (!valid.length) return `<div class="chart-empty">No data</div>`;
+
+  const mn = Math.min(...valid);
+  const mx = Math.max(...valid);
+  const spread = mx - mn;
+  const pad = spread * 0.12 || mn * 0.08 || 1;
+  const yMin = mn - pad;
+  const yMax = mx + pad * 1.4;
+  const yR = yMax - yMin;
+
+  const toX = i => PL + (i / Math.max(values.length-1,1)) * cW;
+  const toY = v => PT + cH - ((v - yMin) / yR) * cH;
+
+  // Path segments
+  let lineParts = [], prevX=null, prevY=null;
+  const pts = [];
+  values.forEach((v,i) => {
+    if (v == null || isNaN(v)) { prevX=null; prevY=null; return; }
+    const x = toX(i), y = toY(v);
+    pts.push({x,y,v,i});
+    lineParts.push(prevX==null ? `M${x.toFixed(1)},${y.toFixed(1)}` : `L${x.toFixed(1)},${y.toFixed(1)}`);
+    prevX=x; prevY=y;
+  });
+  if (!pts.length) return `<div class="chart-empty">No data</div>`;
+
+  const lp = pts[pts.length-1], fp = pts[0];
+  const linePath = lineParts.join(' ');
+  const fillPath = linePath + ` L${lp.x.toFixed(1)},${PT+cH} L${fp.x.toFixed(1)},${PT+cH} Z`;
+
+  const lastI = pts[pts.length-1].i;
+  const prevPt = pts.length >= 2 ? pts[pts.length-2] : null;
+  const lastV  = pts[pts.length-1].v;
+  const improved = prevPt == null || (lowerIsBetter ? lastV <= prevPt.v : lastV >= prevPt.v);
+  const lastDotC = improved ? 'var(--dot-good)' : 'var(--dot-bad)';
+
+  function fmtV(v) {
+    if (unit === '%') return v.toFixed(1) + '%';
+    if (unit === 'h') {
+      if (v >= 100) return v.toFixed(1) + 'h';
+      if (v >= 10)  return v.toFixed(1) + 'h';
+      return v.toFixed(2) + 'h';
+    }
+    if (v >= 1000000) return (v/1000000).toFixed(2) + 'M';
+    if (v >= 1000)    return (v/1000).toFixed(0) + 'K';
+    return v.toFixed(0);
+  }
+
+  const gid = 'g'+(++_gid);
+
+  const dotsHTML = pts.map(({x,y,v,i}) => {
+    const isLast = i === lastI;
+    const dc = isLast ? lastDotC : 'var(--tx4)';
+    const r  = isLast ? 4 : 2.5;
+    const lc = isLast ? lastDotC : 'var(--tx3)';
+    const fw = isLast ? 500 : 400;
+    return `<text x="${x.toFixed(1)}" y="${(y-8).toFixed(1)}" text-anchor="middle" font-size="9" fill="${lc}" font-family="'IBM Plex Mono',monospace" font-weight="${fw}">${fmtV(v)}</text>
+<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}" fill="${dc}" stroke="var(--card)" stroke-width="1.5"/>`;
+  }).join('\n');
+
+  const xHTML = labels.map((l,i) => {
+    if (values[i]==null) return '';
+    return `<text x="${toX(i).toFixed(1)}" y="${(PT+cH+14).toFixed(1)}" text-anchor="middle" font-size="9" fill="var(--tx3)" font-family="'Sora',sans-serif">${l}</text>`;
+  }).join('\n');
+
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;overflow:visible" role="img">
+<defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0%" stop-color="${color}" stop-opacity="0.18"/>
+  <stop offset="100%" stop-color="${color}" stop-opacity="0.01"/>
+</linearGradient></defs>
+<path d="${fillPath}" fill="url(#${gid})"/>
+<path d="${linePath}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+${dotsHTML}
+${xHTML}
+</svg>`;
+}
+
+/* ═══════════════════════════════════
+   CARD HTML BUILDER
+   ═══════════════════════════════════ */
+function buildCard({ label, values, labels, latestLabel, prevLabel, unit, lowerIsBetter, chartColor }) {
+  const valid = values.filter(v => v!=null && !isNaN(v));
+  const latestV = values[values.length-1];
+  const prevV   = values.length >= 2 ? values[values.length-2] : null;
+
+  // Format main value
+  function fmtMain(v) {
+    if (v == null) return '—';
+    if (unit==='%') return v.toFixed(1);
+    if (unit==='h') {
+      if (v>=100) return v.toFixed(1);
+      if (v>=10)  return v.toFixed(2);
+      return v.toFixed(2);
+    }
+    if (v>=1000000) return (v/1000000).toFixed(2)+'M';
+    if (v>=1000)    return (v/1000).toFixed(0)+','+String(v).padStart(6,'0').slice(-3);
+    return v.toFixed(0);
+  }
+
+  // Format number with commas
+  function fmtComma(v) {
+    if (v==null) return '—';
+    return Math.round(v).toLocaleString();
+  }
+
+  let displayVal = unit==='count' ? fmtComma(latestV) : (fmtMain(latestV) + (unit&&unit!=='count'?'<span style="font-size:13px;color:var(--tx3);font-weight:400;margin-left:1px">'+unit+'</span>':''));
+
+  // Delta
+  let deltaHTML = '';
+  if (latestV != null && prevV != null && prevLabel) {
+    const diff = latestV - prevV;
+    const absDiff = Math.abs(diff);
+    const improved = lowerIsBetter ? diff <= 0 : diff >= 0;
+    const cls = improved ? 'delta-up' : 'delta-down';
+    const arrow = diff > 0 ? '↑' : '↓';
+    let fmtDiff;
+    if (unit==='%') fmtDiff = (diff>0?'+':'')+diff.toFixed(1)+'pp';
+    else if (unit==='h') fmtDiff = (diff>0?'+':'')+diff.toFixed(1)+'h';
+    else if (unit==='count') fmtDiff = (diff>0?'+':'')+Math.round(diff).toLocaleString();
+    else fmtDiff = (diff>0?'+':'')+absDiff.toFixed(0);
+    deltaHTML = `<span class="${cls}">${arrow} ${fmtDiff}</span> <span class="delta-neu">vs ${prevLabel}</span>`;
+  } else if (valid.length <= 1) {
+    deltaHTML = `<span class="delta-neu">No prior period</span>`;
+  }
+
+  const chart = S.view === 'daily'
+    ? `<div class="daily-placeholder"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--tx3)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Daily granularity coming soon</div>`
+    : buildChart({ values, labels, lowerIsBetter, unit: unit==='count'?'':unit, color: chartColor });
+
+  return `
+    <div style="margin-bottom:10px">
+      <div style="font-size:11px;font-weight:600;color:var(--tx3);letter-spacing:.6px;text-transform:uppercase;margin-bottom:6px">${label}</div>
+    </div>
+    <div class="mc-row1">
+      <span class="mc-val">${displayVal}</span>
+      <span class="mc-period">${latestLabel || '—'}</span>
+    </div>
+    <div class="mc-delta" style="margin-bottom:8px">${deltaHTML}</div>
+    <div class="mc-chart">${chart}</div>`;
+}
+
+/* ═══════════════════════════════════
+   RENDER FUNCTIONS
+   ═══════════════════════════════════ */
+function getMonthSeries(data) {
+  return S.months.map(m => data[m] ?? null);
+}
+
+function renderProductCard(prod, metric) {
+  const el = document.getElementById(`card-${prod}-${metric}`);
+  if (!el) return;
+
+  const dim = S.dim, seg = S.seg;
+  const lowerIsBetter = metric === 'p99';
+  const unit = metric === 'p99' ? 'h' : '%';
+  const label = metric === 'p99' ? 'TAT (P99)' : (prod==='Image'||prod==='360') ? 'SLA < 6 Hrs' : 'SLA < 12 Hrs';
+
+  let values, labels, latestLabel, prevLabel, chartColor;
+
+  if (S.view === 'monthly') {
+    const data = MONTHLY[dim]?.[prod]?.[metric]?.[seg] || {};
+    values = getMonthSeries(data);
+    labels = [...S.months];
+    latestLabel = S.months[S.months.length-1].toUpperCase();
+    prevLabel   = S.months.length >= 2 ? S.months[S.months.length-2] : null;
+    chartColor  = getComputedStyle(document.documentElement).getPropertyValue('--chart').trim();
+  } else if (S.view === 'weekly') {
+    const weekData = WEEKLY[prod]?.[metric]?.[seg];
+    if (weekData) {
+      values = weekData;
+    } else {
+      values = [null,null,null,null];
+    }
+    labels      = WEEKLY_LABELS;
+    latestLabel = 'W4';
+    prevLabel   = 'W3';
+    chartColor  = getComputedStyle(document.documentElement).getPropertyValue('--chart').trim();
+  } else {
+    // daily
+    values      = [null,null,null,null,null,null,null];
+    labels      = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    latestLabel = 'TODAY';
+    prevLabel   = null;
+    chartColor  = getComputedStyle(document.documentElement).getPropertyValue('--chart').trim();
+  }
+
+  el.innerHTML = buildCard({ label, values, labels, latestLabel, prevLabel, unit, lowerIsBetter, chartColor });
+}
+
+function renderCatalogCards() {
+  const seg = S.seg;
+
+  // Accounts
+  const accEl = document.getElementById('card-Catalog-accounts');
+  if (accEl) {
+    let values, labels, latestLabel, prevLabel;
+    if (S.view === 'monthly') {
+      const data = CAT_MONTHLY.accounts[seg] || {};
+      values = getMonthSeries(data);
+      labels = [...S.months];
+      latestLabel = S.months[S.months.length-1].toUpperCase();
+      prevLabel   = S.months.length >= 2 ? S.months[S.months.length-2] : null;
+    } else if (S.view === 'weekly') {
+      if (seg === 'Overall') {
+        values = WEEKLY.Catalog.accounts;
+      } else {
+        values = WEEKLY.Catalog.accountsBySegs[seg] || [null,null,null,null];
+      }
+      labels=[...WEEKLY_LABELS]; latestLabel='W4'; prevLabel='W3';
+    } else {
+      values=[null,null,null,null,null,null,null];
+      labels=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+      latestLabel='TODAY'; prevLabel=null;
+    }
+    accEl.innerHTML = buildCard({ label:'Live Accounts', values, labels, latestLabel, prevLabel, unit:'count', lowerIsBetter:false });
+  }
+
+  // Reviews
+  const revEl = document.getElementById('card-Catalog-reviews');
+  if (revEl) {
+    let values, labels, latestLabel, prevLabel;
+    if (S.view === 'monthly') {
+      const data = CAT_MONTHLY.reviews[seg] || {};
+      values = getMonthSeries(data);
+      labels = [...S.months];
+      latestLabel = S.months[S.months.length-1].toUpperCase();
+      prevLabel   = S.months.length >= 2 ? S.months[S.months.length-2] : null;
+    } else if (S.view === 'weekly') {
+      if (seg === 'Overall') {
+        values = WEEKLY.Catalog.reviews;
+      } else {
+        values = WEEKLY.Catalog.reviewsBySegs[seg] || [null,null,null,null];
+      }
+      labels=[...WEEKLY_LABELS]; latestLabel='W4'; prevLabel='W3';
+    } else {
+      values=[null,null,null,null,null,null,null];
+      labels=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+      latestLabel='TODAY'; prevLabel=null;
+    }
+    revEl.innerHTML = buildCard({ label:'Website Reviews', values, labels, latestLabel, prevLabel, unit:'count', lowerIsBetter:false });
+  }
+}
+
+function renderAll() {
+  ['Image','360','Video'].forEach(prod => {
+    renderProductCard(prod, 'p99');
+    renderProductCard(prod, 'sla');
+  });
+  renderCatalogCards();
+}
+
+/* ═══════════════════════════════════
+   CONTROLS
+   ═══════════════════════════════════ */
+function setView(v) {
+  S.view = v;
+  document.querySelectorAll('[data-view]').forEach(b => b.classList.toggle('on', b.dataset.view===v));
+  renderAll();
+}
+function setSeg(s) {
+  S.seg = s;
+  document.querySelectorAll('[data-seg]').forEach(b => b.classList.toggle('on', b.dataset.seg===s));
+  renderAll();
+}
+function setDim(d) {
+  S.dim = d;
+  document.querySelectorAll('[data-dim]').forEach(b => b.classList.toggle('on', b.dataset.dim===d));
+  renderAll();
+}
+
+function setRange() {
+  const from = document.getElementById('dr-from').value;
+  const to   = document.getElementById('dr-to').value;
+  if (!from || !to) { S.months = [...ALL_MONTHS]; renderAll(); return; }
+  if (from > to) return;
+  S.months = ALL_MONTHS.filter(m => MONTH_MAP[m] >= from && MONTH_MAP[m] <= to);
+  if (!S.months.length) S.months = [...ALL_MONTHS];
+  renderAll();
+}
+
+function clearRange() {
+  document.getElementById('dr-from').value = '2025-06';
+  document.getElementById('dr-to').value   = '2025-09';
+  S.months = [...ALL_MONTHS];
+  renderAll();
+}
+
+function toggleTheme() {
+  const r = document.documentElement;
+  const cur = r.getAttribute('data-theme');
+  const sys = window.matchMedia('(prefers-color-scheme:dark)').matches;
+  if (!cur)            r.setAttribute('data-theme', sys?'light':'dark');
+  else if(cur==='dark') r.setAttribute('data-theme','light');
+  else                  r.removeAttribute('data-theme');
+  renderAll();
+}
+
+/* init */
+document.addEventListener('DOMContentLoaded', renderAll);
+</script>
