@@ -450,7 +450,7 @@ tbody td:first-child { text-align: left; color: var(--text2); }
 <!-- API bar -->
 <div class="apibar">
   <label for="api-url">API</label>
-  <input id="api-url" type="text" value="http://localhost:8000" placeholder="http://localhost:8000">
+  <input id="api-url" type="text" value="" placeholder="https://your-app.vercel.app  (leave blank = same origin)">
   <button class="btn btn-primary" onclick="loadData(true)">Connect</button>
   <button class="btn btn-ghost" onclick="loadMockData()">Use mock data</button>
   <div class="status-dot" id="status-dot"></div>
@@ -523,7 +523,7 @@ function fmtHrs(v) { return v == null ? '—' : fmt(v) + 'h'; }
 
 // ── Load from API ──────────────────────────────────────
 async function loadData(forceRefresh = false) {
-  const url = document.getElementById('api-url').value.trim().replace(/\/$/, '');
+  const url = (document.getElementById('api-url').value.trim() || window.location.origin).replace(/\/$/, '');
   setStatus('loading');
   setBtnSpinning(true);
   showError('');
