@@ -1,0 +1,862 @@
+<title>Spyne SLA</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ── Tokens ──────────────────────────────────────────── */
+:root {
+  --bg:         #0A0C14;
+  --surface:    #141720;
+  --surface2:   #1C2030;
+  --border:     #252B3C;
+  --text:       #DDE2F0;
+  --text2:      #6B7394;
+  --text3:      #3D4462;
+  --accent:     #3D8BFF;
+  --accent-dim: rgba(61,139,255,.15);
+  --good:       #2EC47A;
+  --warn:       #F59E0B;
+  --crit:       #E85555;
+  --good-dim:   rgba(46,196,122,.12);
+  --warn-dim:   rgba(245,158,11,.12);
+  --crit-dim:   rgba(232,85,85,.12);
+  --radius:     8px;
+  --c-ent:      #A78BFA;
+  --c-mid:      #F59E0B;
+  --c-res:      #2EC47A;
+  --c-smb:      #F97316;
+  --c-all:      #3D8BFF;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg:         #EEF0F7;
+    --surface:    #FFFFFF;
+    --surface2:   #E4E7F2;
+    --border:     #CDD2E8;
+    --text:       #0D1020;
+    --text2:      #56607A;
+    --text3:      #A0A8C0;
+    --accent:     #1E6FEF;
+    --accent-dim: rgba(30,111,239,.1);
+    --good:       #1B9A5A;
+    --warn:       #C07800;
+    --crit:       #CC2B2B;
+    --good-dim:   rgba(27,154,90,.1);
+    --warn-dim:   rgba(192,120,0,.1);
+    --crit-dim:   rgba(204,43,43,.1);
+    --c-ent:      #7C3AED;
+    --c-mid:      #B45309;
+    --c-res:      #1B9A5A;
+    --c-smb:      #C04C0A;
+    --c-all:      #1E6FEF;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:         #0A0C14;
+  --surface:    #141720;
+  --surface2:   #1C2030;
+  --border:     #252B3C;
+  --text:       #DDE2F0;
+  --text2:      #6B7394;
+  --text3:      #3D4462;
+  --accent:     #3D8BFF;
+  --accent-dim: rgba(61,139,255,.15);
+  --good:       #2EC47A;
+  --warn:       #F59E0B;
+  --crit:       #E85555;
+  --good-dim:   rgba(46,196,122,.12);
+  --warn-dim:   rgba(245,158,11,.12);
+  --crit-dim:   rgba(232,85,85,.12);
+  --c-ent:      #A78BFA;
+  --c-mid:      #F59E0B;
+  --c-res:      #2EC47A;
+  --c-smb:      #F97316;
+  --c-all:      #3D8BFF;
+}
+:root[data-theme="light"] {
+  --bg:         #EEF0F7;
+  --surface:    #FFFFFF;
+  --surface2:   #E4E7F2;
+  --border:     #CDD2E8;
+  --text:       #0D1020;
+  --text2:      #56607A;
+  --text3:      #A0A8C0;
+  --accent:     #1E6FEF;
+  --accent-dim: rgba(30,111,239,.1);
+  --good:       #1B9A5A;
+  --warn:       #C07800;
+  --crit:       #CC2B2B;
+  --good-dim:   rgba(27,154,90,.1);
+  --warn-dim:   rgba(192,120,0,.1);
+  --crit-dim:   rgba(204,43,43,.1);
+  --c-ent:      #7C3AED;
+  --c-mid:      #B45309;
+  --c-res:      #1B9A5A;
+  --c-smb:      #C04C0A;
+  --c-all:      #1E6FEF;
+}
+
+/* ── Reset & Base ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body {
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+/* ── Top bar ─────────────────────────────────────────── */
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  height: 52px;
+  display: flex; align-items: center; gap: 20px;
+}
+.topbar-logo {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: -.3px;
+  color: var(--text);
+  display: flex; align-items: center; gap: 8px;
+}
+.topbar-logo span {
+  color: var(--accent);
+}
+.topbar-sep { width: 1px; height: 24px; background: var(--border); }
+.topbar-title {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13px; color: var(--text2); font-weight: 500;
+}
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+/* Toggle */
+.toggle {
+  display: flex; border: 1px solid var(--border);
+  border-radius: 6px; overflow: hidden;
+  background: var(--surface2);
+}
+.toggle button {
+  padding: 5px 14px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 12px; font-weight: 500;
+  border: none; cursor: pointer;
+  color: var(--text2);
+  background: transparent;
+  transition: background .15s, color .15s;
+}
+.toggle button.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Icon buttons */
+.icon-btn {
+  width: 32px; height: 32px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border);
+  background: transparent; color: var(--text2);
+  cursor: pointer; font-size: 14px;
+  transition: background .15s, color .15s;
+}
+.icon-btn:hover { background: var(--surface2); color: var(--text); }
+.icon-btn.spinning svg { animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── API bar ─────────────────────────────────────────── */
+.apibar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 24px;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 12px;
+}
+.apibar label { color: var(--text2); font-weight: 500; white-space: nowrap; }
+.apibar input {
+  flex: 1; max-width: 320px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  padding: 5px 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  outline: none;
+  transition: border-color .15s;
+}
+.apibar input:focus { border-color: var(--accent); }
+.btn {
+  padding: 5px 14px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 12px; font-weight: 500;
+  border-radius: 6px; cursor: pointer;
+  border: 1px solid transparent;
+  transition: opacity .15s;
+}
+.btn:hover { opacity: .85; }
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-ghost { background: var(--surface2); color: var(--text2); border-color: var(--border); }
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--text3);
+  transition: background .3s;
+  flex-shrink: 0;
+}
+.status-dot.live { background: var(--good); }
+.status-dot.error { background: var(--crit); }
+.status-text { color: var(--text2); }
+
+/* ── Main layout ─────────────────────────────────────── */
+.main { padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+/* ── Section label ────────────────────────────────────── */
+.section-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 12px;
+}
+
+/* ── Period strip ─────────────────────────────────────── */
+.period-strip {
+  display: flex; align-items: baseline; gap: 10px;
+  margin-bottom: 20px;
+}
+.period-label {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px; font-weight: 600;
+  color: var(--text2);
+}
+.period-value {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px; font-weight: 700;
+  color: var(--text);
+}
+
+/* ── KPI tiles ────────────────────────────────────────── */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.kpi {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.kpi-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text2);
+}
+.kpi-value {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 28px; font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.5px;
+  line-height: 1;
+}
+.kpi-sub { font-size: 11px; color: var(--text2); }
+.kpi.good { border-color: var(--good); }
+.kpi.warn { border-color: var(--warn); }
+.kpi.crit { border-color: var(--crit); }
+.kpi-value.good { color: var(--good); }
+.kpi-value.warn { color: var(--warn); }
+.kpi-value.crit { color: var(--crit); }
+
+/* ── Segment cards ────────────────────────────────────── */
+.seg-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.seg-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.seg-header {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 12px;
+}
+.seg-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.seg-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px; font-weight: 700; color: var(--text);
+}
+.seg-metrics {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+.seg-metric {}
+.seg-metric-val {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 16px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.seg-metric-lbl {
+  font-size: 10px; color: var(--text2);
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: .05em;
+}
+
+/* ── Charts ────────────────────────────────────────────── */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+@media (max-width: 860px) {
+  .charts-grid { grid-template-columns: 1fr; }
+}
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+}
+.chart-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px; font-weight: 700;
+  color: var(--text); margin-bottom: 16px;
+}
+.chart-wrap { position: relative; height: 220px; }
+
+/* ── Data table ────────────────────────────────────────── */
+.table-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.table-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.table-header-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px; font-weight: 700; color: var(--text);
+}
+.table-scroll { overflow-x: auto; }
+table {
+  width: 100%; border-collapse: collapse;
+  font-size: 12px;
+}
+thead th {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text2);
+  padding: 10px 14px;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  background: var(--surface2);
+}
+thead th:first-child { text-align: left; }
+tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background .12s;
+}
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--surface2); }
+tbody td {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  padding: 9px 14px;
+  text-align: right;
+  color: var(--text);
+  white-space: nowrap;
+}
+tbody td:first-child { text-align: left; color: var(--text2); }
+.badge-sla {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; font-weight: 600;
+}
+.badge-sla.good { background: var(--good-dim); color: var(--good); }
+.badge-sla.warn { background: var(--warn-dim); color: var(--warn); }
+.badge-sla.crit { background: var(--crit-dim); color: var(--crit); }
+
+/* ── Loader / empty ────────────────────────────────────── */
+.loader {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 14px; padding: 60px 20px;
+  color: var(--text2);
+}
+.loader-spinner {
+  width: 32px; height: 32px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+.loader-text { font-size: 13px; }
+.error-banner {
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: var(--crit-dim);
+  border: 1px solid var(--crit);
+  border-radius: var(--radius);
+  font-size: 12px; color: var(--crit);
+  display: none;
+}
+</style>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="topbar-logo">SP<span>Y</span>NE</div>
+  <div class="topbar-sep"></div>
+  <div class="topbar-title">Catalog SLA Dashboard</div>
+  <div class="topbar-right">
+    <div class="toggle">
+      <button id="btn-day" class="active" onclick="setGranularity('day')">Day</button>
+      <button id="btn-month" onclick="setGranularity('month')">Month</button>
+    </div>
+    <button class="icon-btn" id="refresh-btn" title="Refresh data" onclick="loadData(true)">
+      <svg id="refresh-icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M4 4v5h5M20 20v-5h-5M4 9a9 9 0 0 1 15-6.7L20 4M20 15a9 9 0 0 1-15 6.7L4 20"/>
+      </svg>
+    </button>
+    <button class="icon-btn" id="theme-btn" title="Toggle theme" onclick="toggleTheme()">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<!-- API bar -->
+<div class="apibar">
+  <label for="api-url">API</label>
+  <input id="api-url" type="text" value="http://localhost:8000" placeholder="http://localhost:8000">
+  <button class="btn btn-primary" onclick="loadData(true)">Connect</button>
+  <button class="btn btn-ghost" onclick="loadMockData()">Use mock data</button>
+  <div class="status-dot" id="status-dot"></div>
+  <span class="status-text" id="status-text">—</span>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <div class="error-banner" id="error-banner"></div>
+
+  <div id="content">
+    <div class="loader">
+      <div class="loader-spinner"></div>
+      <div class="loader-text">Loading data…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────
+let allData = [];
+let granularity = 'day';
+let chartSLA = null;
+let chartTAT = null;
+
+const SEGMENTS = [
+  { key: 'all',       label: 'Overall',   dot: '#3D8BFF', sla: 'sla_pct',       p99: 'p99_tat_hrs',       p95: 'p95_tat_hrs'       },
+  { key: 'ent',       label: 'Ent',       dot: '#A78BFA', sla: 'ent_sla_pct',   p99: 'ent_p99_tat_hrs',   p95: 'ent_p95_tat_hrs'   },
+  { key: 'mid',       label: 'Mid',       dot: '#F59E0B', sla: 'mid_sla_pct',   p99: 'mid_p99_tat_hrs',   p95: 'mid_p95_tat_hrs'   },
+  { key: 'resellers', label: 'Resellers', dot: '#2EC47A', sla: 'resellers_sla_pct', p99: 'resellers_p99_tat_hrs', p95: 'resellers_p95_tat_hrs' },
+  { key: 'smb',       label: 'SMB',       dot: '#F97316', sla: 'smb_sla_pct',   p99: 'smb_p99_tat_hrs',   p95: 'smb_p95_tat_hrs'   },
+];
+
+// ── Theme ──────────────────────────────────────────────
+let currentTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+function toggleTheme() {
+  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', currentTheme);
+  if (allData.length) renderCharts(getRows());
+}
+
+// ── Granularity ────────────────────────────────────────
+function setGranularity(g) {
+  granularity = g;
+  document.getElementById('btn-day').classList.toggle('active', g === 'day');
+  document.getElementById('btn-month').classList.toggle('active', g === 'month');
+  if (allData.length) render(allData);
+}
+
+function getRows() {
+  return allData.filter(r => r.granularity === granularity);
+}
+
+// ── SLA color ──────────────────────────────────────────
+function slaClass(v) {
+  if (v == null) return '';
+  if (v >= 92) return 'good';
+  if (v >= 85) return 'warn';
+  return 'crit';
+}
+function slaKpiClass(v) { return slaClass(v); }
+
+// ── Format helpers ─────────────────────────────────────
+function fmt(v, decimals = 1) {
+  if (v == null || isNaN(v)) return '—';
+  return Number(v).toFixed(decimals);
+}
+function fmtPct(v) { return v == null ? '—' : fmt(v) + '%'; }
+function fmtHrs(v) { return v == null ? '—' : fmt(v) + 'h'; }
+
+// ── Load from API ──────────────────────────────────────
+async function loadData(forceRefresh = false) {
+  const url = document.getElementById('api-url').value.trim().replace(/\/$/, '');
+  setStatus('loading');
+  setBtnSpinning(true);
+  showError('');
+
+  try {
+    const endpoint = url + '/api/sla-data' + (forceRefresh ? '?refresh=true' : '');
+    const res = await fetch(endpoint, { signal: AbortSignal.timeout(30000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    allData = json.data || [];
+    setStatus('live', `Live · ${json.total_rows} rows · ${json.query_time_seconds}s`);
+    render(allData);
+  } catch (e) {
+    setStatus('error', 'Cannot reach API');
+    showError(`Could not connect to ${url}/api/sla-data — ${e.message}. Showing mock data below.`);
+    loadMockData(false);
+  } finally {
+    setBtnSpinning(false);
+  }
+}
+
+// ── Mock data ──────────────────────────────────────────
+function loadMockData(showBanner = true) {
+  if (showBanner) {
+    setStatus('error', 'Mock data');
+    showError('Showing mock data. Connect your API to see live figures.');
+  }
+  allData = generateMock();
+  render(allData);
+  setBtnSpinning(false);
+}
+
+function generateMock() {
+  const rows = [];
+  const today = new Date(2026, 8, 3); // Sep 3 2026
+
+  // Day-wise: last 30 days
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const period = d.toISOString().slice(0, 10);
+    const base = 88 + Math.random() * 9;
+    rows.push({
+      sort_group: 0,
+      sort_date: period,
+      granularity: 'day',
+      period,
+      sla_pct:           round(base + jitter(3)),
+      p99_tat_hrs:       round(3.2 + jitter(2), 2),
+      p95_tat_hrs:       round(1.8 + jitter(1.2), 2),
+      ent_sla_pct:       round(base + 3 + jitter(3)),
+      ent_p99_tat_hrs:   round(2.8 + jitter(1.5), 2),
+      ent_p95_tat_hrs:   round(1.5 + jitter(1), 2),
+      mid_sla_pct:       round(base + jitter(4)),
+      mid_p99_tat_hrs:   round(3.5 + jitter(2), 2),
+      mid_p95_tat_hrs:   round(2.0 + jitter(1.2), 2),
+      resellers_sla_pct: round(base - 2 + jitter(5)),
+      resellers_p99_tat_hrs: round(4.0 + jitter(2.5), 2),
+      resellers_p95_tat_hrs: round(2.4 + jitter(1.5), 2),
+      smb_sla_pct:       round(base - 4 + jitter(6)),
+      smb_p99_tat_hrs:   round(4.8 + jitter(3), 2),
+      smb_p95_tat_hrs:   round(3.0 + jitter(2), 2),
+    });
+  }
+
+  // Month-wise: last 5 months
+  const months = ['April 2026','May 2026','June 2026','July 2026','August 2026'];
+  const monthBase = [85, 87, 90, 91, 92];
+  months.forEach((m, idx) => {
+    const base = monthBase[idx];
+    rows.push({
+      sort_group: 1,
+      sort_date: `2026-0${4+idx}-01`,
+      granularity: 'month',
+      period: m,
+      sla_pct:           round(base + jitter(1.5)),
+      p99_tat_hrs:       round(4.0 - idx * 0.2 + jitter(.5), 2),
+      p95_tat_hrs:       round(2.4 - idx * 0.1 + jitter(.3), 2),
+      ent_sla_pct:       round(base + 3 + jitter(1.5)),
+      ent_p99_tat_hrs:   round(3.5 - idx * 0.2 + jitter(.4), 2),
+      ent_p95_tat_hrs:   round(2.0 - idx * 0.1 + jitter(.3), 2),
+      mid_sla_pct:       round(base + jitter(2)),
+      mid_p99_tat_hrs:   round(4.2 - idx * 0.2 + jitter(.5), 2),
+      mid_p95_tat_hrs:   round(2.6 - idx * 0.1 + jitter(.3), 2),
+      resellers_sla_pct: round(base - 3 + jitter(2)),
+      resellers_p99_tat_hrs: round(5.0 - idx * 0.25 + jitter(.6), 2),
+      resellers_p95_tat_hrs: round(3.0 - idx * 0.1 + jitter(.4), 2),
+      smb_sla_pct:       round(base - 5 + jitter(2.5)),
+      smb_p99_tat_hrs:   round(5.8 - idx * 0.3 + jitter(.7), 2),
+      smb_p95_tat_hrs:   round(3.6 - idx * 0.15 + jitter(.4), 2),
+    });
+  });
+
+  return rows.sort((a, b) => a.sort_group - b.sort_group || a.sort_date.localeCompare(b.sort_date));
+}
+
+function jitter(range) { return (Math.random() - 0.5) * range * 2; }
+function round(v, d = 2) { return Math.max(0, Math.min(100, Math.round(v * 10**d) / 10**d)); }
+
+// ── Render ─────────────────────────────────────────────
+function render(data) {
+  const rows = data.filter(r => r.granularity === granularity);
+  if (!rows.length) {
+    document.getElementById('content').innerHTML = '<div class="loader"><div class="loader-text">No data for this granularity.</div></div>';
+    return;
+  }
+
+  const latest = rows[rows.length - 1];
+
+  document.getElementById('content').innerHTML = `
+    <div class="period-strip">
+      <span class="period-label">Latest period</span>
+      <span class="period-value">${latest.period}</span>
+    </div>
+
+    <!-- KPIs overall -->
+    <div class="section-label">Overall</div>
+    <div class="kpi-row" id="kpi-row"></div>
+
+    <!-- Segment cards -->
+    <div class="section-label">By Segment — ${latest.period}</div>
+    <div class="seg-row" id="seg-row"></div>
+
+    <!-- Charts -->
+    <div class="section-label">Trends</div>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">SLA % (within 6h)</div>
+        <div class="chart-wrap"><canvas id="chart-sla"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">TAT Hours (P99 · P95)</div>
+        <div class="chart-wrap"><canvas id="chart-tat"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="section-label">All Periods</div>
+    <div class="table-card">
+      <div class="table-header">
+        <div class="table-header-title">${granularity === 'day' ? 'Daily' : 'Monthly'} breakdown</div>
+        <span style="font-size:11px;color:var(--text2)">${rows.length} periods</span>
+      </div>
+      <div class="table-scroll" id="table-wrap"></div>
+    </div>
+  `;
+
+  renderKPIs(latest);
+  renderSegCards(latest);
+  renderCharts(rows);
+  renderTable(rows);
+}
+
+function renderKPIs(r) {
+  const c = slaKpiClass(r.sla_pct);
+  document.getElementById('kpi-row').innerHTML = `
+    <div class="kpi ${c}">
+      <div class="kpi-label">SLA %</div>
+      <div class="kpi-value ${c}">${fmtPct(r.sla_pct)}</div>
+      <div class="kpi-sub">within 6h</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">P99 TAT</div>
+      <div class="kpi-value">${fmtHrs(r.p99_tat_hrs)}</div>
+      <div class="kpi-sub">99th pct turnaround</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">P95 TAT</div>
+      <div class="kpi-value">${fmtHrs(r.p95_tat_hrs)}</div>
+      <div class="kpi-sub">95th pct turnaround</div>
+    </div>
+  `;
+}
+
+function renderSegCards(r) {
+  const segs = SEGMENTS.slice(1); // skip 'all'
+  document.getElementById('seg-row').innerHTML = segs.map(s => {
+    const sla = r[s.sla]; const c = slaKpiClass(sla);
+    return `
+    <div class="seg-card">
+      <div class="seg-header">
+        <div class="seg-dot" style="background:${s.dot}"></div>
+        <div class="seg-name">${s.label}</div>
+      </div>
+      <div class="seg-metrics">
+        <div class="seg-metric">
+          <div class="seg-metric-val" style="color:var(--${c || 'text'})">${fmtPct(sla)}</div>
+          <div class="seg-metric-lbl">SLA</div>
+        </div>
+        <div class="seg-metric">
+          <div class="seg-metric-val">${fmtHrs(r[s.p99])}</div>
+          <div class="seg-metric-lbl">P99</div>
+        </div>
+        <div class="seg-metric">
+          <div class="seg-metric-val">${fmtHrs(r[s.p95])}</div>
+          <div class="seg-metric-lbl">P95</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function getChartColors() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
+    || (!document.documentElement.getAttribute('data-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  return {
+    grid: isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)',
+    tick: isDark ? '#6B7394' : '#56607A',
+    bg:   isDark ? '#141720' : '#FFFFFF',
+  };
+}
+
+function renderCharts(rows) {
+  if (chartSLA) { chartSLA.destroy(); chartSLA = null; }
+  if (chartTAT) { chartTAT.destroy(); chartTAT = null; }
+
+  const labels = rows.map(r => r.period.length > 10 ? r.period.slice(0, 7) : r.period);
+  const cc = getChartColors();
+
+  const chartDefaults = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom', labels: { color: cc.tick, font: { family: "'IBM Plex Mono'", size: 10 }, boxWidth: 8, padding: 12 } },
+      tooltip: { mode: 'index', intersect: false, bodyFont: { family: "'IBM Plex Mono'", size: 11 }, titleFont: { family: "'IBM Plex Mono'", size: 11 } },
+    },
+    scales: {
+      x: { grid: { color: cc.grid }, ticks: { color: cc.tick, font: { family: "'IBM Plex Mono'", size: 10 }, maxRotation: 45, autoSkipPadding: 8 } },
+      y: { grid: { color: cc.grid }, ticks: { color: cc.tick, font: { family: "'IBM Plex Mono'", size: 10 } } },
+    },
+    interaction: { mode: 'index', intersect: false },
+  };
+
+  // SLA chart
+  const makeDS = (seg, rows) => ({
+    label: seg.label,
+    data: rows.map(r => r[seg.sla]),
+    borderColor: seg.dot,
+    backgroundColor: seg.dot + '18',
+    borderWidth: 2,
+    pointRadius: rows.length > 20 ? 0 : 3,
+    tension: 0.35,
+    fill: false,
+  });
+
+  chartSLA = new Chart(document.getElementById('chart-sla'), {
+    type: 'line',
+    data: { labels, datasets: SEGMENTS.map(s => makeDS(s, rows)) },
+    options: {
+      ...chartDefaults,
+      plugins: { ...chartDefaults.plugins },
+      scales: {
+        ...chartDefaults.scales,
+        y: { ...chartDefaults.scales.y, min: 60, max: 100,
+          ticks: { ...chartDefaults.scales.y.ticks, callback: v => v + '%' } }
+      },
+    }
+  });
+
+  // TAT chart (overall P99 + P95 only, to keep it readable)
+  chartTAT = new Chart(document.getElementById('chart-tat'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'P99', data: rows.map(r => r.p99_tat_hrs), borderColor: '#3D8BFF', borderWidth: 2, pointRadius: rows.length > 20 ? 0 : 3, tension: 0.35, fill: false },
+        { label: 'P95', data: rows.map(r => r.p95_tat_hrs), borderColor: '#2EC47A', borderWidth: 2, pointRadius: rows.length > 20 ? 0 : 3, tension: 0.35, fill: false },
+        { label: 'Ent P99', data: rows.map(r => r.ent_p99_tat_hrs), borderColor: '#A78BFA', borderWidth: 1.5, borderDash: [4,3], pointRadius: 0, tension: 0.35, fill: false },
+        { label: 'SMB P99', data: rows.map(r => r.smb_p99_tat_hrs), borderColor: '#F97316', borderWidth: 1.5, borderDash: [4,3], pointRadius: 0, tension: 0.35, fill: false },
+      ],
+    },
+    options: {
+      ...chartDefaults,
+      scales: {
+        ...chartDefaults.scales,
+        y: { ...chartDefaults.scales.y, min: 0,
+          ticks: { ...chartDefaults.scales.y.ticks, callback: v => v + 'h' } }
+      },
+    }
+  });
+}
+
+function renderTable(rows) {
+  const reversed = [...rows].reverse();
+  const html = `
+  <table>
+    <thead><tr>
+      <th>Period</th>
+      <th>SLA %</th><th>P99</th><th>P95</th>
+      <th>Ent SLA</th><th>Ent P99</th>
+      <th>Mid SLA</th><th>Mid P99</th>
+      <th>Resellers SLA</th><th>Res P99</th>
+      <th>SMB SLA</th><th>SMB P99</th>
+    </tr></thead>
+    <tbody>
+      ${reversed.map(r => `
+      <tr>
+        <td>${r.period}</td>
+        <td><span class="badge-sla ${slaClass(r.sla_pct)}">${fmtPct(r.sla_pct)}</span></td>
+        <td>${fmtHrs(r.p99_tat_hrs)}</td>
+        <td>${fmtHrs(r.p95_tat_hrs)}</td>
+        <td><span class="badge-sla ${slaClass(r.ent_sla_pct)}">${fmtPct(r.ent_sla_pct)}</span></td>
+        <td>${fmtHrs(r.ent_p99_tat_hrs)}</td>
+        <td><span class="badge-sla ${slaClass(r.mid_sla_pct)}">${fmtPct(r.mid_sla_pct)}</span></td>
+        <td>${fmtHrs(r.mid_p99_tat_hrs)}</td>
+        <td><span class="badge-sla ${slaClass(r.resellers_sla_pct)}">${fmtPct(r.resellers_sla_pct)}</span></td>
+        <td>${fmtHrs(r.resellers_p99_tat_hrs)}</td>
+        <td><span class="badge-sla ${slaClass(r.smb_sla_pct)}">${fmtPct(r.smb_sla_pct)}</span></td>
+        <td>${fmtHrs(r.smb_p99_tat_hrs)}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`;
+  document.getElementById('table-wrap').innerHTML = html;
+}
+
+// ── Status helpers ─────────────────────────────────────
+function setStatus(state, text = '') {
+  const dot = document.getElementById('status-dot');
+  const txt = document.getElementById('status-text');
+  dot.className = 'status-dot';
+  if (state === 'live') dot.classList.add('live');
+  if (state === 'error') dot.classList.add('error');
+  txt.textContent = text || (state === 'loading' ? 'Connecting…' : '');
+}
+function showError(msg) {
+  const el = document.getElementById('error-banner');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = msg ? 'block' : 'none';
+}
+function setBtnSpinning(on) {
+  document.getElementById('refresh-btn').classList.toggle('spinning', on);
+}
+
+// ── Init ───────────────────────────────────────────────
+loadData();
+</script>
