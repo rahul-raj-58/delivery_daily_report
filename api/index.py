@@ -233,6 +233,24 @@ async def health():
     }
 
 
+@app.get("/api/ping")
+async def ping():
+    """
+    Fast connection test — runs SELECT 1 only.
+    Use this to verify credentials work without running the heavy query.
+    Should complete in < 2 s.
+    """
+    try:
+        client = get_ch_client()
+        ver = client.query("SELECT version()").result_rows[0][0]
+        return {"ok": True, "clickhouse_version": ver}
+    except Exception as exc:
+        return JSONResponse(
+            status_code=500,
+            content={"ok": False, "error": str(exc), "traceback": traceback.format_exc()}
+        )
+
+
 @app.get("/api/debug")
 async def debug():
     """
