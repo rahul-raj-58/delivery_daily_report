@@ -530,16 +530,26 @@ async function loadData(forceRefresh = false) {
 
   try {
     const endpoint = url + '/api/sla-data' + (forceRefresh ? '?refresh=true' : '');
-    const res = await fetch(endpoint, { signal: AbortSignal.timeout(30000) });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    // Long timeout — query can take 60-120s on first cold load
+    const res = await fetch(endpoint, { signal: AbortSignal.timeout(290000) });
     const json = await res.json();
+
+    if (!res.ok) {
+      // Show the real server error, not a generic message
+      const detail = json.error || json.detail || `HTTP ${res.status}`;
+      const hint   = json.hint  ? `\n\nHint: ${json.hint}` : '';
+      throw new Error(detail + hint);
+    }
+
     allData = json.data || [];
     setStatus('live', `Live · ${json.total_rows} rows · ${json.query_time_seconds}s`);
     render(allData);
   } catch (e) {
-    setStatus('error', 'Cannot reach API');
-    showError(`Could not connect to ${url}/api/sla-data — ${e.message}. Showing mock data below.`);
-    loadMockData(false);
+    setStatus('error', 'API error');
+    // Show the real error — do NOT fall back to mock data
+    showError(`❌ ${e.message}\n\nOpen ${url}/api/debug in a new tab to diagnose the connection.`);
+    document.getElementById('content').innerHTML =
+      `<div class="loader"><div class="loader-text" style="color:var(--crit);white-space:pre-wrap;max-width:600px;text-align:left">${e.message}</div></div>`;
   } finally {
     setBtnSpinning(false);
   }
@@ -858,5 +868,5 @@ function setBtnSpinning(on) {
 }
 
 // ── Init ───────────────────────────────────────────────
-loadData();
+loadData();  // connects to same-origin /api/sla-data on Vercel
 </script>
